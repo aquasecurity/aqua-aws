@@ -1,0 +1,707 @@
+{
+  "Description": "Create Aqua ECS Fargate Service",
+  "Parameters": {
+    "dbAllocatedStorage": {
+      "Default": "40",
+      "Description": "The size of the database (Gb)",
+      "Type": "Number",
+      "MinValue": "40",
+      "MaxValue": "1024",
+      "ConstraintDescription": "must be between 5 and 1024Gb."
+    },
+    "dbPassword": {
+      "NoEcho": "true",
+      "Description": "The database admin account password",
+      "Type": "String",
+      "MinLength": "8",
+      "MaxLength": "41"
+    },
+    "dbUser": {
+      "Description": "The database admin account username",
+      "Type": "String",
+      "MinLength": "1",
+      "MaxLength": "16",
+      "AllowedPattern": "^[a-zA-Z0-9]*$",
+      "ConstraintDescription": "must begin with a letter and contain only alphanumeric characters."
+    },
+    "multiAzDatabase": {
+      "Default": "false",
+      "Description": "Create a multi-AZ RDS database instance",
+      "Type": "String",
+      "AllowedValues": [
+        "true",
+        "false"
+      ],
+      "ConstraintDescription": "must be either true or false."
+    },
+    "myDbInstanceClass": {
+      "Default": "db.m3.medium",
+      "Description": "The database instance type",
+      "Type": "String",
+      "ConstraintDescription": "must select a valid database instance type."
+    },
+    "myDbName": {
+      "Default": "aqua",
+      "Description": "The database name",
+      "Type": "String",
+      "MinLength": "1",
+      "MaxLength": "64",
+      "AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*",
+      "ConstraintDescription": "must begin with a letter and contain only alphanumeric characters."
+    },
+    "cluster": {
+      "Type": "String",
+      "Description": "Enter cluster name",
+      "Default": "test"
+    },
+    "vpcId": {
+      "Type": "String<AWS::EC2::VPC::Id>",
+      "Description": "VpcId of your existing Virtual Private Cloud(VPC)"
+    },
+    "vpcSubnet": {
+      "Type": "String",
+      "Description": "Enter VPC subnet example: 10.0.0.0/16"
+    },
+    "subnets": {
+      "Type": "List<AWS::EC2::Subnet::Id>",
+      "Description": "Enter subnets."
+    },
+    "ecsHostSecurityGroup": {
+      "Type": "String",
+      "Description": "Enter ECS host security group."
+    },
+    "region": {
+      "Type": "String",
+      "Description": "Enter region."
+    },
+    "aquasecServerImage": {
+      "Type": "String",
+      "Description": "Enter image path on ECR."
+    },
+    "aquasecGatewayImage": {
+      "Type": "String",
+      "Description": "Enter image path on ECR."
+    }
+  },
+  "Resources": {
+    "taskdefinitionAquaServer": {
+      "DependsOn": [
+        "ecsTaskExecutionRole",
+        "MyDB",
+        "aquaConsoleLogs"
+      ],
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "Family": "aquaServer",
+        "NetworkMode": "awsvpc",
+        "ExecutionRoleArn": {
+          "Ref": "ecsTaskExecutionRole"
+        },
+        "RequiresCompatibilities": [
+          "FARGATE"
+        ],
+        "Cpu": "512",
+        "Memory": "1024",
+        "ContainerDefinitions": [
+          {
+            "Name": "aquaServer",
+            "Image": {
+              "Ref": "aquasecServerImage"
+            },
+            "PortMappings": [
+              {
+                "ContainerPort": 8080,
+                "HostPort": 8080,
+                "Protocol": "tcp"
+              }
+            ],
+            "Essential": true,
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": "/aqua/console",
+                "awslogs-region": {
+                  "Ref": "region"
+                },
+                "awslogs-stream-prefix": "aquaConsole"
+              }
+            },
+            "Environment": [
+              {
+                "Name": "SCALOCK_SSH_IP_PORT",
+                "Value": {
+                  "Fn::GetAtt": [
+                    "aquaGatewayNlb",
+                    "DNSName"
+                  ]
+                }
+              },
+              {
+                "Name": "SCALOCK_DBUSER",
+                "Value": {
+                  "Ref": "dbUser"
+                }
+              },
+              {
+                "Name": "SCALOCK_DBPASSWORD",
+                "Value": {
+                  "Ref": "dbPassword"
+                }
+              },
+              {
+                "Name": "SCALOCK_DBNAME",
+                "Value": "scalock"
+              },
+              {
+                "Name": "CLUSTER_MODE",
+                "Value": "enabled"
+              },
+              {
+                "Name": "SCALOCK_GATEWAY_NAME",
+                "Value": "scalockAlb"
+              },
+              {
+                "Name": "SCALOCK_DBHOST",
+                "Value": {
+                  "Fn::GetAtt": [
+                    "MyDB",
+                    "Endpoint.Address"
+                  ]
+                }
+              },
+              {
+                "Name": "SCALOCK_AUDIT_DBUSER",
+                "Value": {
+                  "Ref": "dbUser"
+                }
+              },
+              {
+                "Name": "SCALOCK_AUDIT_DBPASSWORD",
+                "Value": {
+                  "Ref": "dbPassword"
+                }
+              },
+              {
+                "Name": "SCALOCK_AUDIT_DBNAME",
+                "Value": "slk_audit"
+              },
+              {
+                "Name": "SCALOCK_AUDIT_DBHOST",
+                "Value": {
+                  "Fn::GetAtt": [
+                    "MyDB",
+                    "Endpoint.Address"
+                  ]
+                }
+              }
+            ],
+          }
+        ]
+      }
+    },
+    "taskdefinitionAquaGateway": {
+      "DependsOn": [
+        "ecsTaskExecutionRole",
+        "MyDB",
+        "aquaGatewayLogs"
+      ],
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "Family": "aquaGateway",
+        "NetworkMode": "awsvpc",
+        "ExecutionRoleArn": {
+          "Ref": "ecsTaskExecutionRole"
+        },
+        "RequiresCompatibilities": [
+          "FARGATE"
+        ],
+        "Cpu": "512",
+        "Memory": "1024",
+        "ContainerDefinitions": [
+          {
+            "Name": "aquaGateway",
+            "Image": {
+              "Ref": "aquasecGatewayImage"
+            },
+            "PortMappings": [
+              {
+                "ContainerPort": 3622,
+                "HostPort": 3622,
+                "Protocol": "tcp"
+              }
+            ],
+            "Essential": true,
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": "/aqua/gateway",
+                "awslogs-region": {
+                  "Ref": "region"
+                },
+                "awslogs-stream-prefix": "aquaGateway"
+              }
+            },
+            "Environment": [
+              {
+                "Name": "SCALOCK_SSH_IP_PORT",
+                "Value": {
+                  "Fn::GetAtt": [
+                    "aquaGatewayNlb",
+                    "DNSName"
+                  ]
+                }
+              },
+              {
+                "Name": "SCALOCK_DBUSER",
+                "Value": {
+                  "Ref": "dbUser"
+                }
+              },
+              {
+                "Name": "SCALOCK_DBPASSWORD",
+                "Value": {
+                  "Ref": "dbPassword"
+                }
+              },
+              {
+                "Name": "SCALOCK_DBNAME",
+                "Value": "scalock"
+              },
+              {
+                "Name": "CLUSTER_MODE",
+                "Value": "enabled"
+              },
+              {
+                "Name": "SCALOCK_GATEWAY_NAME",
+                "Value": "scalockAlb"
+              },
+              {
+                "Name": "SCALOCK_DBHOST",
+                "Value": {
+                  "Fn::GetAtt": [
+                    "MyDB",
+                    "Endpoint.Address"
+                  ]
+                }
+              },
+              {
+                "Name": "SCALOCK_AUDIT_DBUSER",
+                "Value": {
+                  "Ref": "dbUser"
+                }
+              },
+              {
+                "Name": "SCALOCK_AUDIT_DBPASSWORD",
+                "Value": {
+                  "Ref": "dbPassword"
+                }
+              },
+              {
+                "Name": "SCALOCK_AUDIT_DBNAME",
+                "Value": "slk_audit"
+              },
+              {
+                "Name": "SCALOCK_AUDIT_DBHOST",
+                "Value": {
+                  "Fn::GetAtt": [
+                    "MyDB",
+                    "Endpoint.Address"
+                  ]
+                }
+              }
+            ],
+          }
+        ]
+      }
+    },
+    "serviceAquaServer": {
+      "DependsOn": [
+        "taskdefinitionAquaServer",
+        "aquaAlb",
+        "aquaServerListener"
+      ],
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "Cluster": {
+          "Ref": "cluster"
+        },
+        "LaunchType": "FARGATE",
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "AssignPublicIp": "ENABLED",
+            "SecurityGroups": [
+              {
+                "Ref": "ecsHostSecurityGroup"
+              }
+            ],
+            "Subnets": {
+              "Ref": "subnets"
+            }
+          }
+        },
+        "ServiceName": "aquaConsole",
+        "DesiredCount": "1",
+        "DeploymentConfiguration": {
+          "MaximumPercent": "200",
+          "MinimumHealthyPercent": "100"
+        },
+        "LoadBalancers": [
+          {
+            "ContainerName": "aquaServer",
+            "ContainerPort": "8080",
+            "TargetGroupArn": {
+              "Ref": "aquaServerTargetGroup"
+            }
+          }
+        ],
+        "TaskDefinition": {
+          "Ref": "taskdefinitionAquaServer"
+        }
+      }
+    },
+    "serviceAquaGateway": {
+      "DependsOn": [
+        "taskdefinitionAquaGateway",
+        "aquaGatewayNlb",
+        "aquaGatewayListener"
+      ],
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "Cluster": {
+          "Ref": "cluster"
+        },
+        "LaunchType": "FARGATE",
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "AssignPublicIp": "ENABLED",
+            "SecurityGroups": [
+              {
+                "Ref": "ecsHostSecurityGroup"
+              }
+            ],
+            "Subnets": {
+              "Ref": "subnets"
+            }
+          }
+        },
+        "ServiceName": "aquaGateway",
+        "DesiredCount": "2",
+        "DeploymentConfiguration": {
+          "MaximumPercent": "200",
+          "MinimumHealthyPercent": "100"
+        },
+        "LoadBalancers": [
+          {
+            "ContainerName": "aquaGateway",
+            "ContainerPort": "3622",
+            "TargetGroupArn": {
+              "Ref": "aquaGatewayTargetGroup"
+            }
+          }
+        ],
+        "TaskDefinition": {
+          "Ref": "taskdefinitionAquaGateway"
+        }
+      }
+    },
+    "aquaAlbSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Allow access to aqua console and gateway.",
+        "VpcId": {
+          "Ref": "vpcId"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "8080",
+            "ToPort": "8080",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "3622",
+            "ToPort": "3622",
+            "CidrIp": {"Ref": "vpcSubnet"}
+          }
+        ]
+      }
+    },
+    "aquaAlb": {
+      "DependsOn": [
+        "aquaAlbSecurityGroup"
+      ],
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Name": "aqua",
+        "Scheme": "internet-facing",
+        "SecurityGroups": [
+          {
+            "Ref": "aquaAlbSecurityGroup"
+          }
+        ],
+        "Subnets": {
+          "Ref": "subnets"
+        },
+        "Type": "application"
+      }
+    },
+    "aquaGatewayNlb": {
+      "DependsOn": [
+        "aquaAlbSecurityGroup"
+      ],
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Name": "aquaGateway",
+        "Scheme": "internet-facing",
+        "Subnets": {
+          "Ref": "subnets"
+        },
+        "Type": "network"
+      }
+    },
+    "aquaServerTargetGroup": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "TargetType": "ip",
+        "HealthCheckIntervalSeconds": 6,
+        "HealthCheckProtocol": "HTTP",
+        "HealthCheckTimeoutSeconds": 5,
+        "HealthyThresholdCount": 2,
+        "Matcher": {
+          "HttpCode": "200"
+        },
+        "Name": "aquaServer",
+        "Port": "8080",
+        "Protocol": "HTTP",
+        "TargetGroupAttributes": [
+          {
+            "Key": "deregistration_delay.timeout_seconds",
+            "Value": "60"
+          }
+        ],
+        "UnhealthyThresholdCount": 3,
+        "VpcId": {
+          "Ref": "vpcId"
+        }
+      }
+    },
+    "aquaGatewayTargetGroup": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "TargetType": "ip",
+        "HealthCheckIntervalSeconds": 30,
+        "HealthCheckProtocol": "TCP",
+        "HealthCheckTimeoutSeconds": 10,
+        "HealthyThresholdCount": 2,
+        "Name": "aquaGateway",
+        "Port": "3622",
+        "Protocol": "TCP",
+        "TargetGroupAttributes": [
+          {
+            "Key": "deregistration_delay.timeout_seconds",
+            "Value": "60"
+          }
+        ],
+        "UnhealthyThresholdCount": 2,
+        "VpcId": {
+          "Ref": "vpcId"
+        }
+      }
+    },
+    "aquaServerListener": {
+      "DependsOn": [
+        "aquaAlb",
+        "aquaServerTargetGroup"
+      ],
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Properties": {
+        "DefaultActions": [
+          {
+            "Type": "forward",
+            "TargetGroupArn": {
+              "Ref": "aquaServerTargetGroup"
+            }
+          }
+        ],
+        "LoadBalancerArn": {
+          "Ref": "aquaAlb"
+        },
+        "Port": "8080",
+        "Protocol": "HTTP"
+      }
+    },
+    "aquaGatewayListener": {
+      "DependsOn": [
+        "aquaGatewayNlb",
+        "aquaGatewayTargetGroup"
+      ],
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Properties": {
+        "DefaultActions": [
+          {
+            "Type": "forward",
+            "TargetGroupArn": {
+              "Ref": "aquaGatewayTargetGroup"
+            }
+          }
+        ],
+        "LoadBalancerArn": {
+          "Ref": "aquaGatewayNlb"
+        },
+        "Port": "3622",
+        "Protocol": "TCP"
+      }
+    },
+    "ecsTaskExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "aqua",
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ecs-tasks.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "AmazonECSTaskExecutionRolePolicy",
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:GetAuthorizationToken",
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:GetDownloadUrlForLayer",
+                    "ecr:BatchGetImage",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "MyDBSubnetGroup": {
+      "Type": "AWS::RDS::DBSubnetGroup",
+      "Properties": {
+        "DBSubnetGroupDescription": "subnets available for the RDS DB Instance",
+        "SubnetIds": {
+          "Ref": "subnets"
+        }
+      }
+    },
+    "SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Allow access to aqua RDS Postgres DB.",
+        "VpcId": {
+          "Ref": "vpcId"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "5432",
+            "ToPort": "5432",
+            "CidrIp": {"Ref": "vpcSubnet"}
+          }
+        ]
+      }
+    },
+    "MyDB": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "AllocatedStorage": {
+          "Ref": "dbAllocatedStorage"
+        },
+        "AutoMinorVersionUpgrade": "false",
+        "VPCSecurityGroups": [
+          {
+            "Ref": "SecurityGroup"
+          }
+        ],
+        "DBName": {
+          "Ref": "myDbName"
+        },
+        "BackupRetentionPeriod": "7",
+        "DBInstanceIdentifier": {
+          "Ref": "myDbName"
+        },
+        "DBInstanceClass": {
+          "Ref": "myDbInstanceClass"
+        },
+        "DBSubnetGroupName": {
+          "Ref": "MyDBSubnetGroup"
+        },
+        "Engine": "postgres",
+        "EngineVersion": "9.6.6",
+        "MasterUsername": {
+          "Ref": "dbUser"
+        },
+        "MasterUserPassword": {
+          "Ref": "dbPassword"
+        },
+        "MultiAZ": {
+          "Ref": "multiAzDatabase"
+        },
+        "StorageType": "gp2"
+      }
+    },
+    "aquaConsoleLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aqua/console",
+        "RetentionInDays": 30
+      }
+    },
+    "aquaGatewayLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aqua/gateway",
+        "RetentionInDays": 30
+      }
+    }
+  },
+  "Outputs": {
+    "aquaConsole": {
+      "Description": "Aqua ALB DNS.",
+      "Value": {
+        "Fn::GetAtt": [
+          "aquaAlb",
+          "DNSName"
+        ]
+      }
+    },
+    "aquaGateway": {
+      "Description": "Aqua NLB DNS.",
+      "Value": {
+        "Fn::GetAtt": [
+          "aquaGatewayNlb",
+          "DNSName"
+        ]
+      }
+    },
+    "aquaConsolePort": {
+      "Description": "Aqua console port.",
+      "Value": "8080"
+    },
+    "aquaGatewayPort": {
+      "Description": "Aqua console port.",
+      "Value": "3622"
+    }
+  }
+}
