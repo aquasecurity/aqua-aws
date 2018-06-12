@@ -125,7 +125,7 @@
             "Protocol": "TCP"
           }
         ],
-        "Scheme": "internet-facing",
+        "Scheme": "internal",
         "SecurityGroups": [
           {
             "Ref": "aquaAlbSecurityGroup"
