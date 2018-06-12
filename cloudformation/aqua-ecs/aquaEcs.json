@@ -8,7 +8,7 @@
       "Type": "Number",
       "MinValue": "40",
       "MaxValue": "1024",
-      "ConstraintDescription": "must be between 5 and 1024Gb."
+      "ConstraintDescription": "must be between 40 and 1024Gb."
     },
     "dbPassword": {
       "NoEcho": "true",
@@ -77,7 +77,7 @@
     }
   },
   "Resources": {
-    "aquaElbSecurityGroup": {
+    "aquaAlbSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
         "GroupDescription": "Allow access to aqua console and gateway.",
@@ -104,7 +104,7 @@
     },
     "aquaGatewayElb": {
       "DependsOn": [
-        "aquaElbSecurityGroup"
+        "aquaAlbSecurityGroup"
       ],
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
       "Properties": {
@@ -128,7 +128,7 @@
         "Scheme": "internet-facing",
         "SecurityGroups": [
           {
-            "Ref": "aquaElbSecurityGroup"
+            "Ref": "aquaAlbSecurityGroup"
           }
         ],
         "Subnets": {
@@ -337,38 +337,23 @@
         }
       }
     },
-    "aquaConsoleElb": {
+    "aquaAlb": {
       "DependsOn": [
-        "aquaElbSecurityGroup"
+        "aquaAlbSecurityGroup"
       ],
-      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
       "Properties": {
-        "CrossZone": true,
-        "HealthCheck": {
-          "HealthyThreshold": 2,
-          "Interval": 30,
-          "Target": "HTTP:8080/",
-          "Timeout": 5,
-          "UnhealthyThreshold": 5
-        },
-        "LoadBalancerName": "aquaConsole",
-        "Listeners": [
-          {
-            "InstancePort": 8080,
-            "InstanceProtocol": "HTTP",
-            "LoadBalancerPort": "8080",
-            "Protocol": "HTTP"
-          }
-        ],
+        "Name": "aqua",
         "Scheme": "internet-facing",
         "SecurityGroups": [
           {
-            "Ref": "aquaElbSecurityGroup"
+            "Ref": "aquaAlbSecurityGroup"
           }
         ],
         "Subnets": {
           "Ref": "subnets"
-        }
+        },
+        "Type": "application"
       }
     },
     "aquaConsoleService": {
@@ -400,8 +385,8 @@
           {
             "ContainerName": "aquaConsole",
             "ContainerPort": "8080",
-            "LoadBalancerName": {
-              "Ref": "aquaConsoleElb"
+            "TargetGroupArn": {
+              "Ref": "aquaServerTargetGroup"
             }
           }
         ],
@@ -417,6 +402,14 @@
       "Type": "AWS::ECS::TaskDefinition",
       "Properties": {
         "Family": "aquaConsole",
+        "Volumes": [
+          {
+            "Host": {
+              "SourcePath": "/var/run/docker.sock"
+            },
+            "Name": "docker-socket"
+          }
+        ],
         "NetworkMode": "bridge",
         "ContainerDefinitions": [
           {
@@ -424,6 +417,12 @@
             "Image": {
               "Ref": "aquasecServerImage"
             },
+            "MountPoints": [
+              {
+                "ContainerPath": "/var/run/docker.sock",
+                "SourceVolume": "docker-socket"
+              }
+            ],
             "PortMappings": [
               {
                 "ContainerPort": "8080",
@@ -504,6 +503,54 @@
           }
         ]
       }
+    },
+    "aquaServerListener": {
+      "DependsOn": [
+        "aquaAlb",
+        "aquaServerTargetGroup"
+      ],
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Properties": {
+        "DefaultActions": [
+          {
+            "Type": "forward",
+            "TargetGroupArn": {
+              "Ref": "aquaServerTargetGroup"
+            }
+          }
+        ],
+        "LoadBalancerArn": {
+          "Ref": "aquaAlb"
+        },
+        "Port": "8080",
+        "Protocol": "HTTP"
+      }
+    },
+    "aquaServerTargetGroup": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "TargetType": "instance",
+        "HealthCheckIntervalSeconds": 6,
+        "HealthCheckProtocol": "HTTP",
+        "HealthCheckTimeoutSeconds": 5,
+        "HealthyThresholdCount": 2,
+        "Matcher": {
+          "HttpCode": "200"
+        },
+        "Name": "aquaServer",
+        "Port": "8080",
+        "Protocol": "HTTP",
+        "TargetGroupAttributes": [
+          {
+            "Key": "deregistration_delay.timeout_seconds",
+            "Value": "60"
+          }
+        ],
+        "UnhealthyThresholdCount": 3,
+        "VpcId": {
+          "Ref": "vpcId"
+        }
+      }
     }
   },
   "Outputs": {
@@ -511,7 +558,7 @@
       "Description": "Aqua ELB DNS.",
       "Value": {
         "Fn::GetAtt": [
-          "aquaConsoleElb",
+          "aquaAlb",
           "DNSName"
         ]
       }
