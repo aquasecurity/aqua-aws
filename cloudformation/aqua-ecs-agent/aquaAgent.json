@@ -1,0 +1,98 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Install Aqua Agent on ECS.",
+  "Parameters": {
+    "aquaGatewayAddress": {
+      "Description": "The Aqua gateway address accessible from the Aqua Agent",
+      "Type": "String"
+    },
+    "aquaToken": {
+      "NoEcho": "true",
+      "Description": "Aqua Agent installation token retrieved from Aqua Management Console.",
+      "Type": "String"
+    },
+    "aquaAgentImage": {
+      "Type": "String",
+      "Description": "Enter image path on ECR."
+    },
+    "cluster": {
+      "Type": "String",
+      "Description": "Enter cluster name",
+      "Default": "test"
+    }
+  },
+  "Resources": {
+    "aquaAgentTaskdefinition": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "ContainerDefinitions": [
+          {
+            "Memory": 256,
+            "Essential": "true",
+            "MountPoints": [
+              {
+                "ContainerPath": "/var/run/docker.sock",
+                "SourceVolume": "docker-socket"
+              }
+            ],
+            "Name": "aqua-agent",
+            "Environment": [
+              {
+                "Name": "SCALOCK_SERVER",
+                "Value": {
+                  "Ref": "aquaGatewayAddress"
+                }
+              },
+              {
+                "Name": "SILENT",
+                "Value": "yes"
+              },
+              {
+                "Name": "SCALOCK_TOKEN",
+                "Value": {
+                  "Ref": "aquaToken"
+                }
+              },
+              {
+                "Name": "RESTART_CONTAINERS",
+                "Value": "no"
+              }
+            ],
+            "Image": {
+              "Ref": "aquaAgentImage"
+            },
+            "Cpu": 256,
+          }
+        ],
+        "Volumes": [
+          {
+            "Host": {
+              "SourcePath": "/var/run/docker.sock"
+            },
+            "Name": "docker-socket"
+          }
+        ],
+        "Family": "aqua-agent-install"
+      }
+    },
+    "aquaAgentDaemon": {
+      "DependsOn": [
+        "aquaAgentTaskdefinition"
+      ],
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "Cluster": {
+          "Ref": "cluster"
+        },
+        "ServiceName": "aquaAgent",
+        "DeploymentConfiguration": {
+          "MaximumPercent": "100",
+          "MinimumHealthyPercent": "50"
+        },
+        "TaskDefinition": {
+          "Ref": "aquaAgentTaskdefinition"
+        }
+      }
+    }
+  }
+}
