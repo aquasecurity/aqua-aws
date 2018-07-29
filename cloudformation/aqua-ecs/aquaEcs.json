@@ -55,6 +55,11 @@
       "Description": "Enter cluster name",
       "Default": "test"
     },
+    "aquaServerLbSchema": {
+      "Type": "String",
+      "Description": "Enter aqua server load balancer schema internet-facing|internal",
+      "Default": "internet-facing"
+    },
     "vpcId": {
       "Type": "String<AWS::EC2::VPC::Id>",
       "Description": "VpcId of your existing Virtual Private Cloud(VPC)"
@@ -344,7 +349,9 @@
       "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
       "Properties": {
         "Name": "aqua",
-        "Scheme": "internet-facing",
+        "Scheme": {
+          "Ref": "aquaServerLbSchema"
+        },
         "SecurityGroups": [
           {
             "Ref": "aquaAlbSecurityGroup"
@@ -366,7 +373,7 @@
           "Ref": "cluster"
         },
         "ServiceName": "aquaConsole",
-        "DesiredCount": "2",
+        "DesiredCount": "1",
         "PlacementStrategies": [
           {
             "Type": "spread",
@@ -378,8 +385,8 @@
           }
         ],
         "DeploymentConfiguration": {
-          "MaximumPercent": "200",
-          "MinimumHealthyPercent": "100"
+          "MaximumPercent": "100",
+          "MinimumHealthyPercent": "50"
         },
         "LoadBalancers": [
           {

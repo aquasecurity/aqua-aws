@@ -19,7 +19,8 @@ ParameterKey=dbPassword,ParameterValue=xxxx \
 ParameterKey=dbUser,ParameterValue=aquaUser \
 ParameterKey=multiAzDatabase,ParameterValue=true \
 ParameterKey=myDbInstanceClass,ParameterValue=db.m3.medium \
-ParameterKey=myDbName,ParameterValue=aqua
+ParameterKey=myDbName,ParameterValue=aqua \
+ParameterKey=aquaServerLbSchema,ParameterValue=internet-facing
 ```
 
 
