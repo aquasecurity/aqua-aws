@@ -44,6 +44,10 @@
                 }
               },
               {
+                "Name": "AQUA_RUN_WATCHER",
+                "Value": "yes"
+              },
+              {
                 "Name": "SILENT",
                 "Value": "yes"
               },
