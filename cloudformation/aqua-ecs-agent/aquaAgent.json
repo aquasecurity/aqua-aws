@@ -65,7 +65,7 @@
             "Image": {
               "Ref": "aquaAgentImage"
             },
-            "Cpu": 256,
+            "Cpu": 256
           }
         ],
         "Volumes": [
@@ -76,7 +76,17 @@
             "Name": "docker-socket"
           }
         ],
-        "Family": "aqua-agent-install"
+        "Family": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "cluster"
+              },
+              "aqua-agent-install"
+            ]
+          ]
+        }
       }
     },
     "aquaAgentDaemon": {
@@ -88,11 +98,8 @@
         "Cluster": {
           "Ref": "cluster"
         },
+        "SchedulingStrategy": "DAEMON",
         "ServiceName": "aquaAgent",
-        "DeploymentConfiguration": {
-          "MaximumPercent": "100",
-          "MinimumHealthyPercent": "50"
-        },
         "TaskDefinition": {
           "Ref": "aquaAgentTaskdefinition"
         }
