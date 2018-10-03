@@ -3,7 +3,7 @@
   "Description": "Install Aqua Agent on ECS.",
   "Parameters": {
     "aquaGatewayAddress": {
-      "Description": "The Aqua gateway address accessible from the Aqua Agent",
+      "Description": "The Aqua gateway address include port accessible from the Aqua Agent",
       "Type": "String"
     },
     "aquaToken": {

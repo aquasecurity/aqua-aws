@@ -219,7 +219,7 @@
       "Type": "AWS::ECS::TaskDefinition",
       "Properties": {
         "Family": "aquaGateway",
-        "NetworkMode": "bridge",
+        "NetworkMode": "host",
         "ContainerDefinitions": [
           {
             "Name": "aquaGateway",
@@ -439,15 +439,6 @@
             "Memory": "1024",
             "Essential": "true",
             "Environment": [
-              {
-                "Name": "SCALOCK_SSH_IP_PORT",
-                "Value": {
-                  "Fn::GetAtt": [
-                    "aquaGatewayElb",
-                    "DNSName"
-                  ]
-                }
-              },
               {
                 "Name": "SCALOCK_DBUSER",
                 "Value": {
