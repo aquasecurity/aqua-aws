@@ -4,25 +4,25 @@ VPC with 2 subnets.
 ECS cluster.
 
 # Install
-Push aquasec-server and aquasec-gateway to ECR.  
+Push server/gateway/enforcer to ECR.  
 Modify parameters and run create-stack:
 ```
-aws --region us-west-2 cloudformation create-stack --capabilities CAPABILITY_NAMED_IAM --stack-name aqua --template-body file://aquaEcs.json \
---parameters ParameterKey=cluster,ParameterValue=test \
-ParameterKey=subnets,ParameterValue=\"subnet-xxxx,subnet-xxxx\" \
-ParameterKey=vpcId,ParameterValue=vpc-xxxx \
-ParameterKey=vpcSubnet,ParameterValue=xxxx \
-ParameterKey=aquasecServerImage,ParameterValue=xxxx.dkr.ecr.us-west-2.amazonaws.com/aqua:aquasec-server-3.0 \
-ParameterKey=aquasecGatewayImage,ParameterValue=xxxx.dkr.ecr.us-west-2.amazonaws.com/aqua:aquasec-gateway-3.0 \
-ParameterKey=dbAllocatedStorage,ParameterValue=40 \
-ParameterKey=dbPassword,ParameterValue=xxxx \
-ParameterKey=dbUser,ParameterValue=aquaUser \
-ParameterKey=multiAzDatabase,ParameterValue=true \
-ParameterKey=myDbInstanceClass,ParameterValue=db.m3.medium \
-ParameterKey=myDbName,ParameterValue=aqua \
-ParameterKey=aquaServerLbSchema,ParameterValue=internet-facing
+aws --region us-east-1 cloudformation create-stack --capabilities CAPABILITY_NAMED_IAM --stack-name aqua --template-body file://aquaEcs.yaml \
+--parameters ParameterKey=AquaConsoleAccess,ParameterValue=x.x.x.x/x \
+ParameterKey=AquaServerImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:console-3.5 \
+ParameterKey=AquaGatewayImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:gateway-3.5 \
+ParameterKey=AquaEnforcerImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:enforcer-3.5 \
+ParameterKey=BatchInstallToken,ParameterValue=someRandHash \
+ParameterKey=EcsClusterName,ParameterValue=test \
+ParameterKey=EcsInstanceSubnets,ParameterValue=\"subnet-xxxx,subnet-xxxx\" \
+ParameterKey=EcsSecurityGroupId,ParameterValue=sg-xxxx \
+ParameterKey=MultiAzDatabase,ParameterValue=false \
+ParameterKey=RdsInstanceClass,ParameterValue=db.t2.small \
+ParameterKey=RdsInstanceName,ParameterValue=aqua \
+ParameterKey=RdsMasterPassword,ParameterValue=xxxx \
+ParameterKey=RdsMasterUsername,ParameterValue=xxxx \
+ParameterKey=RdsStorage,ParameterValue=40 \
+ParameterKey=VpcCidr,ParameterValue=x.x.x.x/x \
+ParameterKey=VpcId,ParameterValue=vpc-xxxx \
+ParameterKey=LbSubnets,ParameterValue=\"subnet-xxxx,subnet-xxx\"
 ```
-
-
-# Screenshots
-![Screenshot](cloudformation.png)
