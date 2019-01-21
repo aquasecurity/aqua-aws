@@ -631,5 +631,5 @@ Outputs:
           - DNSName
         - ':3622'
   AquaEcsTaskRole:
-    Description: IAM role assigned to ECS billing purposes.
+    Description: IAM role assigned to access ECR
     Value: !Ref AquaEcsTaskRole
