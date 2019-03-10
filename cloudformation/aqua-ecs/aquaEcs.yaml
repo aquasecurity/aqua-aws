@@ -442,6 +442,8 @@ Resources:
               Value: !GetAtt 
                 - AquaGateway
                 - DNSName
+            - Name: AQUA_MODE
+              Value: 'CONTAINER'    
             - Name: AQUA_RUN_WATCHER
               Value: 'yes'
             - Name: SILENT
