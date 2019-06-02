@@ -50,23 +50,23 @@ When completed, you can obtain the DNS name of the Aqua Server UI from the conso
 
 1. Copy the following command:
 ```
-aws --region us-east-1 cloudformation create-stack --capabilities CAPABILITY_NAMED_IAM --stack-name aqua --template-body file://aquaEcs.yaml \
---parameters ParameterKey=AquaConsoleAccess,ParameterValue=x.x.x.x/x \
-ParameterKey=AquaServerImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:console-4.0 \
-ParameterKey=AquaGatewayImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:gateway-4.0 \
-ParameterKey=AquaEnforcerImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:enforcer-4.0 \
-ParameterKey=BatchInstallToken,ParameterValue=someRandHash \
-ParameterKey=EcsClusterName,ParameterValue=test \
-ParameterKey=EcsInstanceSubnets,ParameterValue=\"subnet-xxxx,subnet-xxxx\" \
-ParameterKey=EcsSecurityGroupId,ParameterValue=sg-xxxx \
-ParameterKey=MultiAzDatabase,ParameterValue=false \
-ParameterKey=RdsInstanceClass,ParameterValue=db.t2.small \
-ParameterKey=RdsInstanceName,ParameterValue=aqua \
-ParameterKey=RdsMasterPassword,ParameterValue=xxxx \
-ParameterKey=RdsMasterUsername,ParameterValue=xxxx \
-ParameterKey=RdsStorage,ParameterValue=40 \
-ParameterKey=VpcCidr,ParameterValue=x.x.x.x/x \
-ParameterKey=VpcId,ParameterValue=vpc-xxxx \
+aws --region us-east-1 cloudformation create-stack --capabilities CAPABILITY_NAMED_IAM --stack-name aqua --template-body file://aquaEcs.yaml 
+--parameters ParameterKey=AquaConsoleAccess,ParameterValue=x.x.x.x/x 
+ParameterKey=AquaServerImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:console-4.0 
+ParameterKey=AquaGatewayImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:gateway-4.0 
+ParameterKey=AquaEnforcerImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:enforcer-4.0 
+ParameterKey=BatchInstallToken,ParameterValue=someRandHash 
+ParameterKey=EcsClusterName,ParameterValue=test 
+ParameterKey=EcsInstanceSubnets,ParameterValue=\"subnet-xxxx,subnet-xxxx\" 
+ParameterKey=EcsSecurityGroupId,ParameterValue=sg-xxxx 
+ParameterKey=MultiAzDatabase,ParameterValue=false 
+ParameterKey=RdsInstanceClass,ParameterValue=db.t2.small 
+ParameterKey=RdsInstanceName,ParameterValue=aqua 
+ParameterKey=RdsMasterPassword,ParameterValue=xxxx 
+ParameterKey=RdsMasterUsername,ParameterValue=xxxx 
+ParameterKey=RdsStorage,ParameterValue=40 
+ParameterKey=VpcCidr,ParameterValue=x.x.x.x/x 
+ParameterKey=VpcId,ParameterValue=vpc-xxxx 
 ParameterKey=LbSubnets,ParameterValue=\"subnet-xxxx,subnet-xxx\"
 ```
 2. Set the parameters as follows:
