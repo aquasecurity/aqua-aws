@@ -52,9 +52,9 @@ When completed, you can obtain the DNS name of the Aqua Server UI from the conso
 ```
 aws --region us-east-1 cloudformation create-stack --capabilities CAPABILITY_NAMED_IAM --stack-name aqua --template-body file://aquaEcs.yaml \
 --parameters ParameterKey=AquaConsoleAccess,ParameterValue=x.x.x.x/x \
-ParameterKey=AquaServerImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:console-3.5 \
-ParameterKey=AquaGatewayImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:gateway-3.5 \
-ParameterKey=AquaEnforcerImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:enforcer-3.5 \
+ParameterKey=AquaServerImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:console-x.x \
+ParameterKey=AquaGatewayImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:gateway-x.x \
+ParameterKey=AquaEnforcerImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:enforcer-x.x \
 ParameterKey=BatchInstallToken,ParameterValue=someRandHash \
 ParameterKey=EcsClusterName,ParameterValue=test \
 ParameterKey=EcsInstanceSubnets,ParameterValue=\"subnet-xxxx,subnet-xxxx\" \
@@ -84,10 +84,10 @@ RdsInstanceClass = Set the EC2 instance class for the RDS DB instance
 RdsInstanceName = Set the name of the Aqua DB, e.g., AquaDB 
 RdsMasterPassword = The master password for the RDS instance. This password must contain from 8-128 printable ASCII characters except for @, /,  or ". 
 RdsMasterUsername = The master username for the RDS instance 
-RdsStorage = Set the size (GB) of the RDS DB instance \
+RdsStorage = Set the size (GB) of the RDS DB instance  
 VpcCidr = For use by load balancer service polling. Enter the VPC CIDR (example: 10.0.0.0/16) 
 VpcId = The VpcId to deploy into 
-LbSubnets = Select external subnets  if you need Internet access. 
+LbSubnets = Select external subnets if you need Internet access  
 ```
 3. Run the AWS create-stack CLI command.
 
