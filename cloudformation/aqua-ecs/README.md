@@ -19,7 +19,7 @@ A CloudFormation template is used to deploy Aqua CSP. This can be done either wi
 
 # Requirements
 
- - An ECS cluster
+ - An ECS cluster with at least 2 hosts
  - A VPC with at least 2 subnets connected to the ECS cluster
  - From Aqua Security: your Aqua credentials (username and password) and CSP License Token
 
