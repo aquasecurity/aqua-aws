@@ -223,6 +223,8 @@ Resources:
               awslogs-region: !Ref Region
               awslogs-stream-prefix: aquaConsole
           Environment:
+            - Name: AQUA_GRPC_MODE
+              Value: 0
             - Name: AQUA_DOCKERLESS_SCANNING
               Value: 1
             - Name: SCALOCK_DBSSL
