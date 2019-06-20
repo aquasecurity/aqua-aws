@@ -223,6 +223,8 @@ Resources:
           Memory: '1024'
           Essential: 'true'
           Environment:
+            - Name: AQUA_GRPC_MODE
+              Value: 0
             - Name: SCALOCK_DBSSL
               Value: require
             - Name: SCALOCK_AUDIT_DBSSL
