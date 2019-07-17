@@ -9,7 +9,6 @@ Metadata:
           default: ECS Infrastructure Configuration
         Parameters:
           - EcsClusterName
-          - EcsSecurityGroupId
           - VpcId
           - VpcCidr
           - EcsInstanceSubnets
@@ -35,8 +34,6 @@ Metadata:
         default: ECS cluster name
       Region:
         default: AWS region
-      EcsSecurityGroupId:
-        default: ECS cluster security group
       VpcId:
         default: VPC ID
       VpcCidr:
@@ -72,9 +69,6 @@ Parameters:
   EcsClusterName:
     Description: Existing ECS cluster name
     Type: String
-  EcsSecurityGroupId:
-    Type: 'AWS::EC2::SecurityGroup::Id'
-    Description: The security group assigned to the ECS cluster during cluster creation
   VpcId:
     Description: VpcId to deploy into
     Type: 'AWS::EC2::VPC::Id'
@@ -268,7 +262,7 @@ Resources:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
           SecurityGroups:
-            - !Ref EcsSecurityGroupId
+            - !Ref AquaFargateSecurityGroup
           Subnets: !Ref EcsInstanceSubnets
       ServiceName: !Join 
         - '-'
@@ -426,7 +420,7 @@ Resources:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
           SecurityGroups:
-            - !Ref EcsSecurityGroupId
+            - !Ref AquaFargateSecurityGroup
           Subnets: !Ref EcsInstanceSubnets
       Cluster: !Ref EcsClusterName
       ServiceName: !Join 
@@ -477,6 +471,23 @@ Resources:
           FromPort: '3622'
           ToPort: '3622'
           CidrIp: 0.0.0.0/0
+  AquaFargateSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    DependsOn:
+      - AquaGatewaySecurityGroup
+      - AquaConsoleSecurityGroup
+    Properties:
+      GroupDescription: Allow lb access to fargate tasks
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '3622'
+          ToPort: '3622'
+          CidrIp: !Ref VpcCidr
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          SourceSecurityGroupId: !Ref AquaConsoleSecurityGroup
   AquaEcsTaskRole:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -529,7 +540,10 @@ Resources:
   AquaGateway:
     Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
     Properties:
-      Name: aquaGateway
+      Name: !Join 
+        - '-'
+        - - !Ref EcsClusterName
+          - aquaGateway
       Scheme: internet-facing
       Subnets: !Ref LbSubnets
       Type: network
@@ -568,7 +582,7 @@ Resources:
         - IpProtocol: tcp
           FromPort: '5432'
           ToPort: '5432'
-          SourceSecurityGroupId: !Ref EcsSecurityGroupId
+          SourceSecurityGroupId: !Ref AquaFargateSecurityGroup
 Outputs:
   AquaConsole:
     Description: URL to access Aqua Security Console
