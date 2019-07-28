@@ -334,6 +334,7 @@ Resources:
       HealthCheckIntervalSeconds: 30
       HealthCheckProtocol: TCP
       HealthyThresholdCount: 2
+      HealthCheckPort: 8089
       Name: !Join 
         - '-'
         - - !Ref EcsClusterName
@@ -373,6 +374,9 @@ Resources:
             - ContainerPort: '3622'
               HostPort: '3622'
               Protocol: tcp
+            - ContainerPort: '8089'
+              HostPort: '8089'
+              Protocol: tcp
           Essential: 'true'
           LogConfiguration:
             LogDriver: awslogs
@@ -386,7 +390,7 @@ Resources:
             - Name: SCALOCK_AUDIT_DBSSL
               Value: require
             - Name: HEALTH_MONITOR
-              Value: '0.0.0.0:80'
+              Value: '0.0.0.0:8089'
             - Name: SCALOCK_DBUSER
               Value: !Ref RdsMasterUsername
             - Name: SCALOCK_DBPASSWORD
@@ -457,24 +461,9 @@ Resources:
           FromPort: '8433'
           ToPort: '8433'
           CidrIp: !Ref AquaConsoleAccess
-  AquaGatewaySecurityGroup:
-    Type: 'AWS::EC2::SecurityGroup'
-    Properties:
-      GroupDescription: Allow access to Aqua Gateway Instances
-      VpcId: !Ref VpcId
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: '3622'
-          ToPort: '3622'
-          CidrIp: !Ref VpcCidr
-        - IpProtocol: tcp
-          FromPort: '3622'
-          ToPort: '3622'
-          CidrIp: 0.0.0.0/0
   AquaFargateSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     DependsOn:
-      - AquaGatewaySecurityGroup
       - AquaConsoleSecurityGroup
     Properties:
       GroupDescription: Allow lb access to fargate tasks
@@ -483,6 +472,10 @@ Resources:
         - IpProtocol: tcp
           FromPort: '3622'
           ToPort: '3622'
+          CidrIp: !Ref VpcCidr
+        - IpProtocol: tcp
+          FromPort: '8089'
+          ToPort: '8089'
           CidrIp: !Ref VpcCidr
         - IpProtocol: tcp
           FromPort: '8080'
