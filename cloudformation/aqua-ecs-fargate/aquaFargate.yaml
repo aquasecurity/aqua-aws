@@ -523,12 +523,12 @@ Resources:
   AquaConsoleLogs:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      LogGroupName: !Join ['-', ['aqua/console', !Ref EcsClusterName]]
+      LogGroupName: !Join ['-', ['/aqua/console', !Ref EcsClusterName]]
       RetentionInDays: 30
   AquaGatewayLogs:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      LogGroupName: !Join ['-', ['aqua/gateway', !Ref EcsClusterName]]
+      LogGroupName: !Join ['-', ['/aqua/gateway', !Ref EcsClusterName]]
       RetentionInDays: 30
   AquaGateway:
     Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
