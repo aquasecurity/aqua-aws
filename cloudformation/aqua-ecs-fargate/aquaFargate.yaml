@@ -213,7 +213,7 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Join ['-', ['aqua/console', !Ref EcsClusterName]]
+              awslogs-group: !Join ['-', ['/aqua/console', !Ref EcsClusterName]]
               awslogs-region: !Ref Region
               awslogs-stream-prefix: aquaConsole
           Environment:
@@ -381,7 +381,7 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Join ['-', ['aqua/gateway', !Ref EcsClusterName]]
+              awslogs-group: !Join ['-', ['/aqua/gateway', !Ref EcsClusterName]]
               awslogs-region: !Ref Region
               awslogs-stream-prefix: aquaGateway
           Environment:
