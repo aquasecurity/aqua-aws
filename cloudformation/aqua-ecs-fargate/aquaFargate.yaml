@@ -213,7 +213,7 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: /aqua/console
+              awslogs-group: !Join ['-', ['/aqua/console', !Ref EcsClusterName]]
               awslogs-region: !Ref Region
               awslogs-stream-prefix: aquaConsole
           Environment:
@@ -381,7 +381,7 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: /aqua/gateway
+              awslogs-group: !Join ['-', ['/aqua/gateway', !Ref EcsClusterName]]
               awslogs-region: !Ref Region
               awslogs-stream-prefix: aquaGateway
           Environment:
@@ -523,12 +523,12 @@ Resources:
   AquaConsoleLogs:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      LogGroupName: /aqua/console
+      LogGroupName: !Join ['-', ['/aqua/console', !Ref EcsClusterName]]
       RetentionInDays: 30
   AquaGatewayLogs:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      LogGroupName: /aqua/gateway
+      LogGroupName: !Join ['-', ['/aqua/gateway', !Ref EcsClusterName]]
       RetentionInDays: 30
   AquaGateway:
     Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
@@ -552,7 +552,7 @@ Resources:
         - !Ref RdsSecurityGroup
       DBName: !Ref RdsInstanceName
       BackupRetentionPeriod: '7'
-      DBInstanceIdentifier: !Ref RdsInstanceName
+      DBInstanceIdentifier: !Join ['-', ['aquadb', !Ref EcsClusterName]]
       DBInstanceClass: !Ref RdsInstanceClass
       DBSubnetGroupName: !Ref RdsInstanceSubnetGroup
       Engine: postgres
