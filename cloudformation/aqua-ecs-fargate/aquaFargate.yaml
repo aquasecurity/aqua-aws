@@ -209,6 +209,9 @@ Resources:
             - ContainerPort: '8080'
               HostPort: '8080'
               Protocol: tcp
+            - ContainerPort: '8443'
+              HostPort: '8443'
+              Protocol: tcp
           Essential: 'true'
           LogConfiguration:
             LogDriver: awslogs
@@ -218,7 +221,7 @@ Resources:
               awslogs-stream-prefix: aquaConsole
           Environment:
             - Name: AQUA_GRPC_MODE
-              Value: 0
+              Value: 1
             - Name: AQUA_DOCKERLESS_SCANNING
               Value: 1
             - Name: SCALOCK_DBSSL
@@ -229,7 +232,7 @@ Resources:
               Value: scalock
             - Name: BATCH_INSTALL_GATEWAY
               Value: !GetAtt 
-                - AquaGateway
+                - AquaNlb
                 - DNSName
             - Name: SCALOCK_DBUSER
               Value: !Ref RdsMasterUsername
@@ -255,6 +258,7 @@ Resources:
     DependsOn:
       - AquaConsoleTaskDefinition
       - AquaConsoleListener
+      - AquaConsoleGrpcListener
     Properties:
       Cluster: !Ref EcsClusterName
       LaunchType: FARGATE
@@ -279,6 +283,12 @@ Resources:
               - aqua-console
           ContainerPort: '8080'
           TargetGroupArn: !Ref AquaConsoleTargetGroup
+        - ContainerName: !Join 
+            - '-'
+            - - !Ref EcsClusterName
+              - aqua-console
+          ContainerPort: '8443'
+          TargetGroupArn: !Ref AquaConsoleGrpcTargetGroup
       TaskDefinition: !Ref AquaConsoleTaskDefinition
   AquaConsoleListener:
     Type: 'AWS::ElasticLoadBalancingV2::Listener'
@@ -318,28 +328,59 @@ Resources:
     Type: 'AWS::ElasticLoadBalancingV2::Listener'
     DependsOn:
       - AquaGatewayTargetGroup
+      - AquaNlb
     Properties:
       DefaultActions:
         - Type: forward
           TargetGroupArn: !Ref AquaGatewayTargetGroup
-      LoadBalancerArn: !Ref AquaGateway
+      LoadBalancerArn: !Ref AquaNlb
       Port: '3622'
+      Protocol: TCP
+  AquaConsoleGrpcListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    DependsOn:
+      - AquaConsoleGrpcTargetGroup
+      - AquaNlb
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref AquaConsoleGrpcTargetGroup
+      LoadBalancerArn: !Ref AquaNlb
+      Port: '8443'
       Protocol: TCP
   AquaGatewayTargetGroup:
     Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
     DependsOn:
-      - AquaGateway
+      - AquaNlb
     Properties:
       TargetType: ip
       HealthCheckIntervalSeconds: 30
       HealthCheckProtocol: TCP
       HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
       HealthCheckPort: 8089
       Name: !Join 
         - '-'
         - - !Ref EcsClusterName
           - aqua-gateway
       Port: '3622'
+      Protocol: TCP
+      VpcId: !Ref VpcId
+  AquaConsoleGrpcTargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    DependsOn:
+      - AquaConsole
+    Properties:
+      TargetType: ip
+      HealthCheckIntervalSeconds: 30
+      HealthCheckProtocol: TCP
+      HealthyThresholdCount: 2
+      HealthCheckPort: 8443
+      Name: !Join 
+        - '-'
+        - - !Ref EcsClusterName
+          - aqua-console-grpc
+      Port: '8443'
       Protocol: TCP
       TargetGroupAttributes:
         - Key: deregistration_delay.timeout_seconds
@@ -411,11 +452,18 @@ Resources:
               Value: !GetAtt 
                 - RdsInstance
                 - Endpoint.Address
+            - Name: AQUA_CONSOLE_SECURE_ADDRESS
+              Value: !Join 
+                - ''
+                - - !GetAtt 
+                    - AquaNlb
+                    - DNSName
+                  - ':8443'
   AquaGatewayService:
     Type: 'AWS::ECS::Service'
     DependsOn:
       - AquaGatewayTaskDefinition
-      - AquaGateway
+      - AquaNlb
       - AquaGatewayTargetGroup
       - AquaGatewayListener
     Properties:
@@ -478,6 +526,10 @@ Resources:
           ToPort: '8089'
           CidrIp: !Ref VpcCidr
         - IpProtocol: tcp
+          FromPort: '8443'
+          ToPort: '8443'
+          CidrIp: !Ref VpcCidr
+        - IpProtocol: tcp
           FromPort: '8080'
           ToPort: '8080'
           SourceSecurityGroupId: !Ref AquaConsoleSecurityGroup
@@ -530,14 +582,14 @@ Resources:
     Properties:
       LogGroupName: !Join ['-', ['/aqua/gateway', !Ref EcsClusterName]]
       RetentionInDays: 30
-  AquaGateway:
+  AquaNlb:
     Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
     Properties:
       Name: !Join 
         - '-'
         - - !Ref EcsClusterName
-          - aquaGateway
-      Scheme: internet-facing
+          - aquaNlb
+      Scheme: internal
       Subnets: !Ref LbSubnets
       Type: network
   RdsInstance:
@@ -586,6 +638,15 @@ Outputs:
           - AquaConsole
           - DNSName
         - ':8080'
+  AquaConsoleGrpcConnection:
+    Description: >-
+      DNS to server gRPC
+    Value: !Join 
+      - ''
+      - - !GetAtt 
+          - AquaNlb
+          - DNSName
+        - ':8443'
   AquaGatewayExternalConnection:
     Description: >-
       Aqua Enforcer gateway startup connection string for use when Enforcers are
@@ -593,7 +654,7 @@ Outputs:
     Value: !Join 
       - ''
       - - !GetAtt 
-          - AquaGateway
+          - AquaNlb
           - DNSName
         - ':3622'
   AquaEcsTaskRole:
