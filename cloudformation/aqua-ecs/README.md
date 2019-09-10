@@ -10,7 +10,7 @@ These instructions are applicable to all versions of Aqua CSP.
 Your deployment will create these services:
  - Aqua Server, deployed with an Amazon Application Load Balancer
  - Aqua Database, created on a new Amazon RDS instance, which includes 7 days of rolling backups
- - Aqua Gateways (2), each on a separate subnet, deployed with a Classic Load Balancer
+ - Aqua Gateways (2), each on a separate subnet, deployed with a Network Load Balancer
  - Aqua Enforcers (1 deployed on each host in your cluster, via a DaemonSet)
 
 In addition, it will create an IAM role for giving the Aqua Server access to ECR (Elastic Container Registry).
