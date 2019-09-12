@@ -201,6 +201,8 @@ Resources:
     DependsOn:
       - AquaEcsTaskRole
       - RdsInstance
+      - Secret0
+      - Secret1
     Properties:
       Family: !Join 
         - '-'
@@ -227,6 +229,13 @@ Resources:
               Protocol: tcp
           Memory: '1024'
           Essential: 'true'
+          Secrets:
+            - Name: SCALOCK_DBPASSWORD
+              ValueFrom: !Ref Secret0
+            - Name: SCALOCK_AUDIT_DBPASSWORD
+              ValueFrom: !Ref Secret0
+            - Name: BATCH_INSTALL_TOKEN
+              ValueFrom: !Ref Secret1
           Environment:
             - Name: AQUA_GRPC_MODE
               Value: 1
@@ -238,24 +247,18 @@ Resources:
               Value: scalock
             - Name: BATCH_INSTALL_NAME
               Value: ECS
-            - Name: BATCH_INSTALL_TOKEN
-              Value: !Ref BatchInstallToken
             - Name: BATCH_INSTALL_GATEWAY
               Value: !GetAtt 
                 - AquaNlb
                 - DNSName
             - Name: SCALOCK_DBUSER
               Value: !Ref RdsMasterUsername
-            - Name: SCALOCK_DBPASSWORD
-              Value: !Ref RdsMasterPassword
             - Name: SCALOCK_DBHOST
               Value: !GetAtt 
                 - RdsInstance
                 - Endpoint.Address
             - Name: SCALOCK_AUDIT_DBUSER
               Value: !Ref RdsMasterUsername
-            - Name: SCALOCK_AUDIT_DBPASSWORD
-              Value: !Ref RdsMasterPassword
             - Name: SCALOCK_AUDIT_DBNAME
               Value: slk_audit
             - Name: SCALOCK_AUDIT_DBHOST
@@ -264,6 +267,7 @@ Resources:
                 - Endpoint.Address
       NetworkMode: bridge
       TaskRoleArn: !Ref AquaEcsTaskRole
+      ExecutionRoleArn: !Ref AquaEcsTaskRole
   AquaConsoleService:
     Type: 'AWS::ECS::Service'
     DependsOn:
@@ -411,11 +415,14 @@ Resources:
     DependsOn:
       - AquaEcsTaskRole
       - RdsInstance
+      - Secret0
     Properties:
       Family: !Join 
         - '-'
         - - !Ref EcsClusterName
           - aqua-gateway
+      TaskRoleArn: !Ref AquaEcsTaskRole
+      ExecutionRoleArn: !Ref AquaEcsTaskRole
       ContainerDefinitions:
         - Name: !Join 
             - '-'
@@ -430,6 +437,11 @@ Resources:
               Protocol: tcp
           Memory: '1024'
           Essential: 'true'
+          Secrets:
+            - Name: SCALOCK_DBPASSWORD
+              ValueFrom: !Ref Secret0
+            - Name: SCALOCK_AUDIT_DBPASSWORD
+              ValueFrom: !Ref Secret0
           Environment:
             - Name: SCALOCK_DBSSL
               Value: require
@@ -439,8 +451,6 @@ Resources:
               Value: '0.0.0.0:8089'
             - Name: SCALOCK_DBUSER
               Value: !Ref RdsMasterUsername 
-            - Name: SCALOCK_DBPASSWORD
-              Value: !Ref RdsMasterPassword 
             - Name: SCALOCK_DBNAME
               Value: scalock
             - Name: SCALOCK_DBHOST
@@ -449,8 +459,6 @@ Resources:
                 - Endpoint.Address 
             - Name: SCALOCK_AUDIT_DBUSER
               Value: !Ref RdsMasterUsername 
-            - Name: SCALOCK_AUDIT_DBPASSWORD
-              Value: !Ref RdsMasterPassword 
             - Name: SCALOCK_AUDIT_DBNAME
               Value: slk_audit
             - Name: SCALOCK_AUDIT_DBHOST
@@ -501,6 +509,7 @@ Resources:
     DependsOn:
       - AquaGatewayService
       - AquaEcsTaskRole
+      - Secret1
     Properties:
       ContainerDefinitions:
         - Memory: 256
@@ -509,6 +518,9 @@ Resources:
             - ContainerPath: /var/run/docker.sock
               SourceVolume: docker-socket
           Name: aqua-enforcer
+          Secrets:
+            - Name: AQUA_TOKEN
+              ValueFrom: !Ref Secret1
           Environment:
             - Name: AQUA_SERVER
               Value: !GetAtt 
@@ -520,8 +532,6 @@ Resources:
               Value: 'yes'
             - Name: SILENT
               Value: 'yes'
-            - Name: AQUA_TOKEN
-              Value: !Ref BatchInstallToken
             - Name: RESTART_CONTAINERS
               Value: 'no'
             - Name: AQUA_LOGICAL_NAME
@@ -539,7 +549,7 @@ Resources:
         - '-'
         - - !Ref EcsClusterName
           - aqua-enforcer
-      TaskRoleArn: !Ref AquaEcsTaskRole
+      ExecutionRoleArn: !Ref AquaEcsTaskRole
   AquaEnforcerDaemon:
     DependsOn:
       - AquaEnforcerTaskDefinition
@@ -652,6 +662,19 @@ Resources:
                   - 'ecr:GetRepositoryPolicy'
                 Resource: '*'
               - !Ref 'AWS::NoValue'
+        - PolicyName: !Join 
+            - '-'
+            - - !Ref EcsClusterName
+              - AquaSecretsManagerPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'secretsmanager:GetSecretValue'
+                Resource: 
+                  - !Ref Secret0
+                  - !Ref Secret1
   RdsInstance:
     Type: 'AWS::RDS::DBInstance'
     DependsOn:
@@ -687,7 +710,27 @@ Resources:
         - IpProtocol: tcp
           FromPort: '5432'
           ToPort: '5432'
-          SourceSecurityGroupId: !Ref EcsSecurityGroupId          
+          SourceSecurityGroupId: !Ref EcsSecurityGroupId
+  Secret0:
+    Type: AWS::SecretsManager::Secret
+    Properties: 
+      Description: Aqua RDS password
+      Name: !Join 
+        - '/'
+        - - !Ref EcsClusterName
+          - AquaRdsPassword
+      SecretString: 
+        !Ref RdsMasterPassword
+  Secret1:
+    Type: AWS::SecretsManager::Secret
+    Properties: 
+      Description: Aqua batch install token
+      Name: !Join 
+        - '/'
+        - - !Ref EcsClusterName
+          - AquaBatchInstallToken
+      SecretString: 
+        !Ref BatchInstallToken
 Outputs:
   AquaConsole:
     Description: URL to access Aqua Security Console
@@ -720,3 +763,4 @@ Outputs:
   AquaEcsTaskRole:
     Description: IAM role assigned to access ECR
     Value: !Ref AquaEcsTaskRole
+
