@@ -188,6 +188,7 @@ Resources:
       - AquaEcsTaskRole
       - RdsInstance
       - AquaConsoleLogs
+      - Secret0
     Properties:
       Family: !Join 
         - '-'
@@ -219,6 +220,11 @@ Resources:
               awslogs-group: !Join ['-', ['/aqua/console', !Ref EcsClusterName]]
               awslogs-region: !Ref Region
               awslogs-stream-prefix: aquaConsole
+          Secrets:
+            - Name: SCALOCK_DBPASSWORD
+              ValueFrom: !Ref Secret0
+            - Name: SCALOCK_AUDIT_DBPASSWORD
+              ValueFrom: !Ref Secret0
           Environment:
             - Name: AQUA_GRPC_MODE
               Value: 1
@@ -236,16 +242,12 @@ Resources:
                 - DNSName
             - Name: SCALOCK_DBUSER
               Value: !Ref RdsMasterUsername
-            - Name: SCALOCK_DBPASSWORD
-              Value: !Ref RdsMasterPassword
             - Name: SCALOCK_DBHOST
               Value: !GetAtt 
                 - RdsInstance
                 - Endpoint.Address
             - Name: SCALOCK_AUDIT_DBUSER
               Value: !Ref RdsMasterUsername
-            - Name: SCALOCK_AUDIT_DBPASSWORD
-              Value: !Ref RdsMasterPassword
             - Name: SCALOCK_AUDIT_DBNAME
               Value: slk_audit
             - Name: SCALOCK_AUDIT_DBHOST
@@ -393,6 +395,7 @@ Resources:
       - AquaEcsTaskRole
       - RdsInstance
       - AquaGatewayLogs
+      - Secret0
     Properties:
       Family: !Join 
         - '-'
@@ -425,6 +428,11 @@ Resources:
               awslogs-group: !Join ['-', ['/aqua/gateway', !Ref EcsClusterName]]
               awslogs-region: !Ref Region
               awslogs-stream-prefix: aquaGateway
+          Secrets:
+            - Name: SCALOCK_DBPASSWORD
+              ValueFrom: !Ref Secret0
+            - Name: SCALOCK_AUDIT_DBPASSWORD
+              ValueFrom: !Ref Secret0
           Environment:
             - Name: SCALOCK_DBSSL
               Value: require
@@ -434,8 +442,6 @@ Resources:
               Value: '0.0.0.0:8089'
             - Name: SCALOCK_DBUSER
               Value: !Ref RdsMasterUsername
-            - Name: SCALOCK_DBPASSWORD
-              Value: !Ref RdsMasterPassword
             - Name: SCALOCK_DBNAME
               Value: scalock
             - Name: SCALOCK_DBHOST
@@ -444,8 +450,6 @@ Resources:
                 - Endpoint.Address
             - Name: SCALOCK_AUDIT_DBUSER
               Value: !Ref RdsMasterUsername
-            - Name: SCALOCK_AUDIT_DBPASSWORD
-              Value: !Ref RdsMasterPassword
             - Name: SCALOCK_AUDIT_DBNAME
               Value: slk_audit
             - Name: SCALOCK_AUDIT_DBHOST
@@ -572,6 +576,17 @@ Resources:
                   - 'logs:PutLogEvents'
                 Resource: '*'
               - !Ref 'AWS::NoValue'
+        - PolicyName: !Join 
+            - '-'
+            - - !Ref EcsClusterName
+              - AquaSecretsManagerPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'secretsmanager:GetSecretValue'
+                Resource: !Ref Secret0
   AquaConsoleLogs:
     Type: 'AWS::Logs::LogGroup'
     Properties:
@@ -628,6 +643,16 @@ Resources:
           FromPort: '5432'
           ToPort: '5432'
           SourceSecurityGroupId: !Ref AquaFargateSecurityGroup
+  Secret0:
+    Type: AWS::SecretsManager::Secret
+    Properties: 
+      Description: Aqua RDS password
+      Name: !Join 
+        - '/'
+        - - !Ref EcsClusterName
+          - AquaRdsPassword
+      SecretString: 
+        !Ref RdsMasterPassword
 Outputs:
   AquaConsole:
     Description: URL to access Aqua Security Console
