@@ -379,6 +379,9 @@ Resources:
           - aquaNlb
       Scheme: internal
       Subnets: !Ref LbSubnets
+      LoadBalancerAttributes: 
+        - Key: load_balancing.cross_zone.enabled
+          Value: true
       Type: network
   AquaGatewayListener:
     Type: 'AWS::ElasticLoadBalancingV2::Listener'

@@ -607,6 +607,9 @@ Resources:
       Scheme: internal
       Subnets: !Ref LbSubnets
       Type: network
+      LoadBalancerAttributes: 
+        - Key: load_balancing.cross_zone.enabled
+          Value: true
   RdsInstance:
     Type: 'AWS::RDS::DBInstance'
     DependsOn:
