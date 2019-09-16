@@ -381,7 +381,7 @@ Resources:
       Name: !Join 
         - '-'
         - - !Ref EcsClusterName
-          - aqua-console-grpc
+          - aqua-grpc
       Port: '8443'
       Protocol: TCP
       TargetGroupAttributes:
@@ -607,6 +607,9 @@ Resources:
       Scheme: internal
       Subnets: !Ref LbSubnets
       Type: network
+      LoadBalancerAttributes: 
+        - Key: load_balancing.cross_zone.enabled
+          Value: true
   RdsInstance:
     Type: 'AWS::RDS::DBInstance'
     DependsOn:
