@@ -381,7 +381,7 @@ Resources:
       Name: !Join 
         - '-'
         - - !Ref EcsClusterName
-          - aqua-console-grpc
+          - aqua-grpc
       Port: '8443'
       Protocol: TCP
       TargetGroupAttributes:
