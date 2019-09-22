@@ -358,7 +358,7 @@ Resources:
       HealthCheckIntervalSeconds: 30
       HealthCheckProtocol: TCP
       HealthyThresholdCount: 2
-      HealthCheckPort: 8443
+      HealthCheckPort: 8080
       Name: !Join 
         - '-'
         - - !Ref EcsClusterName
@@ -621,7 +621,7 @@ Resources:
       ToPort: 8089
   EcsSecurityGroupIngress5:
     Type: 'AWS::EC2::SecurityGroupIngress'
-    Description: Allows inbound port 8089 from VPC to gateways helthcheck.
+    Description: Allows inbound port 8443 from VPC to console gRPC.
     Properties:
       GroupId: !Ref EcsSecurityGroupId
       CidrIp: !Ref VpcCidr
