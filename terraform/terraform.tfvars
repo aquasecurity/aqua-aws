@@ -12,7 +12,7 @@ aquacsp_registry = "4.5.19318"
 # You must have already configured a domain name
 # and hosted Zone in Route 53 for this to work!!!
 #################################################
-dns_domain   = ""
+dns_domain   = "example.com"
 console_name = "aqua"
 
 ###################################################
@@ -50,7 +50,7 @@ secretsmanager_db_password          = "aqua/db_password"
 # EC2 Configuration - INPUT REQUIRED
 # Don't add the .pem of the file name
 #################################################
-ssh-key_name  = "your-ec2-host-key-pair-name"
+ssh-key_name  = "your-ec2-key-pair-name"
 instance_type = "m5.large"
 
 #################################################
