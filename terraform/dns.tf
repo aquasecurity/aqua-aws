@@ -3,18 +3,18 @@
 #################################################
 
 data "aws_route53_zone" "my-zone" {
-  name         = "${var.dns_domain}"
+  name         = var.dns_domain
   private_zone = false
 }
 
 resource "aws_route53_record" "aqua-console" {
-  zone_id = "${data.aws_route53_zone.my-zone.id}"
-  name    = "${var.console_name}"
+  zone_id = data.aws_route53_zone.my-zone.id
+  name    = var.console_name
   type    = "A"
 
   alias {
-    name                   = "${aws_lb.lb.dns_name}"
-    zone_id                = "${aws_lb.lb.zone_id}"
+    name                   = aws_alb.alb-console.dns_name
+    zone_id                = aws_alb.alb-console.zone_id
     evaluate_target_health = false
   }
 }
@@ -25,7 +25,7 @@ resource "aws_acm_certificate" "cert" {
 
   tags = {
     Terraform = "true"
-    Owner     = "${var.resource_owner}"
+    Owner     = var.resource_owner
   }
 
   lifecycle {
@@ -34,14 +34,14 @@ resource "aws_acm_certificate" "cert" {
 }
 
 resource "aws_route53_record" "cert_validation" {
-  name    = "${aws_acm_certificate.cert.domain_validation_options.0.resource_record_name}"
-  type    = "${aws_acm_certificate.cert.domain_validation_options.0.resource_record_type}"
-  zone_id = "${data.aws_route53_zone.my-zone.id}"
-  records = ["${aws_acm_certificate.cert.domain_validation_options.0.resource_record_value}"]
+  name    = aws_acm_certificate.cert.domain_validation_options[0].resource_record_name
+  type    = aws_acm_certificate.cert.domain_validation_options[0].resource_record_type
+  zone_id = data.aws_route53_zone.my-zone.id
+  records = [aws_acm_certificate.cert.domain_validation_options[0].resource_record_value]
   ttl     = 60
 }
 
 resource "aws_acm_certificate_validation" "cert" {
-  certificate_arn         = "${aws_acm_certificate.cert.arn}"
-  validation_record_fqdns = ["${aws_route53_record.cert_validation.fqdn}"]
+  certificate_arn         = aws_acm_certificate.cert.arn
+  validation_record_fqdns = [aws_route53_record.cert_validation.fqdn]
 }

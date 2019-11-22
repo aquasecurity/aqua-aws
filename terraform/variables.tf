@@ -13,6 +13,11 @@ variable "project" {
   description = "This will be used for naming resources."
 }
 
+variable "aquacsp_registry" {
+  default     = ""
+  description = "Choose the registry version your require."
+}
+
 variable "dns_domain" {
   default     = ""
   description = "Your preregistered domain name configured in Route 53."
@@ -24,8 +29,14 @@ variable "console_name" {
 }
 
 variable "aqua_console_access" {
-  default     = ""
+  default     = [""]
+  type        = list
   description = "Use 0.0.0.0/0 at your own peril."
+}
+
+variable "wfh_users" {
+  default     = [""]
+  description = "Add work from home users in an list."
 }
 
 variable "vpc_cidr" {
@@ -41,8 +52,22 @@ variable "vpc_private_subnets" {
   default = [""]
 }
 
+variable "vpc_database_subnets" {
+  default = [""]
+}
+
 variable "vpc_azs" {
   default = [""]
+}
+
+variable "console_memory_size_mb" {
+  default     = ""
+  description = "Size in megabytes for the Console container."
+}
+
+variable "gateway_memory_size_mb" {
+  default     = ""
+  description = "Size in megabytes for the Gateway container."
 }
 
 variable "secretsmanager_container_repository" {
@@ -67,7 +92,7 @@ variable "secretsmanager_db_password" {
 
 variable "ssh-key_name" {
   default     = ""
-  type        = "string"
+  type        = string
   description = "Required key pair to launch the ECS instance."
 }
 
@@ -91,6 +116,11 @@ variable "postgres_port" {
   description = "AWS RDS PostgreSQL port. Keep the default unless you know what you're doing."
 }
 
+variable "db_storage_size" {
+  default     = "30"
+  description = "Storage for Aqua CSP database. Minimum requirement is 30 GB."
+}
+
 variable "multple_az" {
   default     = ""
   description = "Set this to true for production environments."
@@ -111,17 +141,7 @@ variable "aqua_server_gateway_port" {
   description = "TCP port incoming for enforcers from the AWS ELB."
 }
 
-variable "aqua_gateway_port" {
+variable "aqua_enforcer_port" {
   default     = ""
   description = "Required port for incoming enforcers."
-}
-
-variable "alb_http_port" {
-  default     = ""
-  description = "External ALB for HTTP but the ALB will redirect to HTTPS."
-}
-
-variable "alb_https_port" {
-  default     = ""
-  description = "External ALB for HTTPS."
 }
