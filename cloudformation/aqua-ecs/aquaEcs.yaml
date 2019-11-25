@@ -531,6 +531,8 @@ Resources:
                 - DNSName
             - Name: AQUA_MODE
               Value: 'CONTAINER'    
+            - Name: AQUA_IMAGE_LITE_SYNC
+              Value: 'false'
             - Name: AQUA_RUN_WATCHER
               Value: 'yes'
             - Name: SILENT
