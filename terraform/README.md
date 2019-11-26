@@ -14,9 +14,9 @@
     - [AWS Managed Role](#aws-managed-role)
     - [AWS Service Limits](#aws-service-limits)
     - [Unsupported Instance Configuration](#unsupported-instance-configuration)
+    - [The new ARN and resource ID format must be enabled to propagate tags](#The new ARN and resource ID format must be enabled to propagate tags)
 - [Running the Template Step-by-Step](#running-the-template-step-by-step)
 - [Cleaning Up](#cleaning-up)
-- [Special Thanks](#special-thanks)
 
 
 # Goals
@@ -34,30 +34,20 @@ Before you can use this template, you'll need to have a few things in place:
 2. A domain name registered and a hosted zone configured in AWS Route 53. You can purchase a domain name using AWS Route 53 or use a domain name that you've previously registered with another domain registrar. Below is an example of what this should look like in your AWS Route 53 console for a hosted zone:
 
 <p align="center">
-<img src="https://github.com/jeremyjturner/terraform-aqua-csp/blob/master/images/01-route53-domain-name-example.jpg" alt="Example of having a Route 53 domain name configured." height="75%" width="75%">
+<img src="https://github.com/aquasecurity/aqua-aws/blob/master/terraform/images/01-route53-domain-name-example.jpg" alt="Example of having a Route 53 domain name configured." height="75%" width="75%">
 </p>
 
-3. Terraform installed on the computer that will execute this template. This template was created with Terraform version `v0.11.13`. If you are new to Terraform, check out [Terraform Switcher](https://warrensbox.github.io/terraform-switcher/) to help you get started.
+3. Terraform installed on the computer that will execute this template. This template was created with Terraform version `v0.12.16`. If you are new to Terraform, check out [Terraform Switcher](https://warrensbox.github.io/terraform-switcher/) to help you get started.
 
 4. The AWS CLI configured on the computer that will deploy this template with Terraform.
+
+5. Understanding that successful deployment of this template is not free and you'll need to pay by the hour so make sure to following the instructions at [Cleaning Up](#cleaning-up) when you are done testing.
 
 # AWS Preparation
 
 ## Domain Name
 
 As mentioned in the [Prerequisites](#prerequisites) section above, you'll need a domain name. You can easily [create and buy a domain name using Route 53](https://aws.amazon.com/getting-started/tutorials/get-a-domain/) or you can add a domain name that you own to Route 53.
-
-For this project, I've taken a spare domain name that I own called `securitynoodles.com` and created a Route 53 hosted zone. Note the nameservers (NS) highlighted in red:
-
-<p align="center">
-<img src="https://github.com/jeremyjturner/terraform-aqua-csp/blob/master/images/02-route53-created-hosted-zone-example.jpg" alt="Example of having a Route 53 hosted zone configured." height="75%" width="75%">
-</p>
-
-This domain was registered with [Hover](hover.com) so all I have to do is edit the nameservers for `securitynoodles.com` in my Hover management console:
-
-<p align="center">
-<img src="https://github.com/jeremyjturner/terraform-aqua-csp/blob/master/images/03-add-route53-ns-to-domain-registrar.jpg" alt="Example of updating domain registrar Nameservers with Route 53 Nameservers" height="75%" width="75%">
-</p>
 
 ## Secrets
 
@@ -100,6 +90,20 @@ aws secretsmanager tag-resource --region <<YOUR_TARGET_AWS_REGION>> --secret-id 
     --tags "[{\"Key\": \"Owner\", \"Value\": \"<<YOUR_NAME>>\"}]"
 ```
 
+Here is an example output when running the first command above with the profile `aquacsp` in the Tokyo AWS region.
+Note that the password used in the command is a throw away:
+
+```
+jeremyturner: aws secretsmanager --profile aquacsp create-secret --region ap-northeast-1 --name aqua/container_repository \
+> --description "Username and Password for the Aqua Container Repository" \
+> --secret-string "{\"username\":\"jeremy.turner@example.com\",\"password\":\"bfmD6uKvPC4Ew3NHR4yg\"}"
+{
+    "ARN": "arn:aws:secretsmanager:ap-northeast-1:XXXXXXXXXXXX:secret:aqua/container_repository-K20z2l",
+    "Name": "aqua/container_repository",
+    "VersionId": "b541db53-f450-444d-a618-081d1647baae"
+}
+```
+
 If you opted to run the commands above instead of using the AWS Console, make sure to clear the commands that contain secrets out of your bash history with the following command:
 
 `history -d <line number to destroy>`
@@ -109,7 +113,7 @@ Also, if you copy and paste these commands, make sure that you are performing th
 Whatever method you use to setup your secrets, you should have something similar to the screenshot below:
 
 <p align="center">
-<img src="https://github.com/jeremyjturner/terraform-aqua-csp/blob/master/images/04-aws-secrets-manager-prepared-example.jpg" alt="Example of having secrets stored in AWS SSM." height="75%" width="75%">
+<img src="https://github.com/aquasecurity/aqua-aws/blob/master/terraform/images/02-aws-secrets-manager-prepared-example.jpg" alt="Example of having secrets stored in AWS SSM." height="75%" width="75%">
 </p>
 
 ## S3 Bucket
@@ -153,90 +157,83 @@ Don't include the file extension `.pem`. Otherwise, you'll get the error:
 
 ## Variables and Files
 
-First, clone this repo and `cd` into the cloned directory `terraform-aqua-csp`:
-
-```
-jeremyturner: git clone git@github.com:jeremyjturner/terraform-aqua-csp.git
-Cloning into 'terraform-aqua-csp'...
-remote: Enumerating objects: 43, done.
-remote: Counting objects: 100% (43/43), done.
-remote: Compressing objects: 100% (35/35), done.
-remote: Total 43 (delta 5), reused 39 (delta 5), pack-reused 0
-Receiving objects: 100% (43/43), 157.45 KiB | 318.00 KiB/s, done.
-Resolving deltas: 100% (5/5), done.
-jeremyturner: cd terraform-aqua-csp/
-```
-
 Variables are located in the file `variables.tf` and you'll enter ***your*** values in the file `terraform.tfvars`.
 
 Don't forget to enter ***your*** own values in the file `aquacsp-infrastructure.config` as mentioned in the [S3 Bucket](#s3-bucket) section above.
 
-Next, using the instructions in section [EC2 Key Pair](#ec2-key-pair), copy over your EC2 Key Pair into the `terraform-aqua-csp` directory. In the example below, I have copied over `aquacsp-test-tokyo.pem`:
+Next, using the instructions in section [EC2 Key Pair](#ec2-key-pair), copy over your EC2 Key Pair into the `terraform` directory. In the example below, I have copied over `aquacsp-test-tokyo.pem`:
 
 ```
-jeremyturner: ls -lah
-total 216
-drwxr-xr-x  29 jeremyturner  staff   928B Aug 15 20:51 .
-drwxr-xr-x   4 jeremyturner  staff   128B Aug 15 20:51 ..
-drwxr-xr-x  12 jeremyturner  staff   384B Aug 15 20:49 .git
--rw-r--r--   1 jeremyturner  staff    32B Aug 15 20:49 .gitignore
--rw-r--r--   1 jeremyturner  staff   1.0K Aug 15 20:49 LICENSE
--rw-r--r--   1 jeremyturner  staff    12K Aug 15 20:49 README.md
--rw-r--r--   1 jeremyturner  staff   1.4K Aug 15 20:49 alb.tf
--rw-r--r--   1 jeremyturner  staff   136B Aug 15 20:49 aquacsp-infrastructure.config
--r--------@  1 jeremyturner  staff   1.7K Aug 14 11:34 aquacsp-test-tokyo.pem
--rw-r--r--   1 jeremyturner  staff   2.2K Aug 15 20:49 asg.tf
--rw-r--r--   1 jeremyturner  staff   2.0K Aug 15 20:49 cross_acct_ecr_iam.tf
--rw-r--r--   1 jeremyturner  staff   395B Aug 15 20:49 cwl.tf
--rw-r--r--   1 jeremyturner  staff   1.4K Aug 15 20:49 dns.tf
--rw-r--r--   1 jeremyturner  staff   3.6K Aug 15 20:49 ecs.tf
--rw-r--r--   1 jeremyturner  staff   990B Aug 15 20:49 elb.tf
--rw-r--r--   1 jeremyturner  staff   4.7K Aug 15 20:49 iam.tf
-drwxr-xr-x   6 jeremyturner  staff   192B Aug 15 20:49 images
--rw-r--r--   1 jeremyturner  staff     1B Aug 15 20:49 main.tf
--rw-r--r--   1 jeremyturner  staff   248B Aug 15 20:49 outputs.tf
--rw-r--r--   1 jeremyturner  staff    79B Aug 15 20:49 provider.tf
--rw-r--r--   1 jeremyturner  staff   1.5K Aug 15 20:49 rds.tf
--rw-r--r--   1 jeremyturner  staff   1.1K Aug 15 20:49 secrets_manager.tf
--rw-r--r--   1 jeremyturner  staff   4.1K Aug 15 20:49 security_group.tf
--rw-r--r--   1 jeremyturner  staff   410B Aug 15 20:49 target_group.tf
-drwxr-xr-x   4 jeremyturner  staff   128B Aug 15 20:49 task-definitions
--rw-r--r--   1 jeremyturner  staff   2.6K Aug 15 20:49 terraform.tfvars
-drwxr-xr-x   3 jeremyturner  staff    96B Aug 15 20:49 userdata
--rw-r--r--   1 jeremyturner  staff   2.8K Aug 15 20:49 variables.tf
--rw-r--r--   1 jeremyturner  staff   373B Aug 15 20:49 vpc.tf
+jeremyturner: ls -lh
+total 240
+-rw-r--r--  1 jeremyturner  staff    23K Nov 23 00:04 README.md
+-rw-r--r--  1 jeremyturner  staff   1.8K Nov  2 15:49 alb-console-public.tf
+-rw-r--r--  1 jeremyturner  staff   1.6K Nov 22 15:37 alb-server-internal.tf
+-rw-r--r--  1 jeremyturner  staff   101B Nov 22 23:59 aquacsp-infrastructure.config
+-r--------@ 1 jeremyturner  staff   1.7K Nov 23 00:00 aquacsp-test-tokyo.pem
+-rw-r--r--  1 jeremyturner  staff   2.3K Nov 22 22:35 asg-console.tf
+-rw-r--r--  1 jeremyturner  staff   2.3K Nov 22 22:35 asg-gateway.tf
+-rw-r--r--  1 jeremyturner  staff   1.5K Nov 22 18:19 cloudwatch-logs.tf
+-rw-r--r--  1 jeremyturner  staff   1.3K Nov  2 15:49 dns.tf
+-rw-r--r--  1 jeremyturner  staff   2.7K Nov 22 19:09 ecs-console.tf
+-rw-r--r--  1 jeremyturner  staff   2.5K Nov 22 22:35 ecs-gateway.tf
+-rw-r--r--  1 jeremyturner  staff   4.9K Nov 22 22:38 iam.tf
+drwxr-xr-x  4 jeremyturner  staff   128B Nov 22 23:58 images
+drwxr-xr-x  3 jeremyturner  staff    96B Nov 22 22:31 modules
+-rw-r--r--  1 jeremyturner  staff   1.6K Nov 22 22:35 nlb-console.tf
+-rw-r--r--  1 jeremyturner  staff   1.7K Nov 22 22:35 nlb-microenforcer-internal.tf
+-rw-r--r--  1 jeremyturner  staff   184B Nov 22 21:20 outputs.tf
+-rw-r--r--  1 jeremyturner  staff    76B Nov  2 15:43 provider.tf
+-rw-r--r--  1 jeremyturner  staff   1.7K Nov 22 23:08 rds.tf
+-rw-r--r--  1 jeremyturner  staff   1.0K Nov  2 15:39 secrets.tf
+-rw-r--r--  1 jeremyturner  staff   6.4K Nov 22 22:35 security-groups.tf
+drwxr-xr-x  4 jeremyturner  staff   128B Nov 22 21:17 task-definitions
+-rw-r--r--  1 jeremyturner  staff   3.1K Nov 22 23:11 terraform.tfvars
+drwxr-xr-x  3 jeremyturner  staff    96B Nov 22 22:38 userdata
+-rw-r--r--  1 jeremyturner  staff   3.3K Nov 22 18:48 variables.tf
+-rw-r--r--  1 jeremyturner  staff    45B Nov  2 15:33 versions.tf
+-rw-r--r--  1 jeremyturner  staff   546B Nov 22 22:35 vpc.tf
 ```
 
-Now input your values in the `terraform.tfvars` file. Here is an example snippet of my values–note that I've left the variable`aqua_console_access` open to `0.0.0.0/0` since I'm only testing that my Terraform template works:
+Now input your values in the `terraform.tfvars` file. 
+Here is an example snippet of my values–note that I've left the variable`aqua_console_access` open to `0.0.0.0/0` since I'm only testing that my Terraform template works:
 
 ```
 #################################################
 # Aqua CSP Project - INPUT REQUIRED
+# Variables below assume Tokyo AWS Region
 #################################################
-region = "ap-northeast-1"
-resource_owner = "Jeremy Turner"
-project = "aquacsp"
+region           = "ap-northeast-1"
+resource_owner   = "Jeremy Turner"
+project          = "aquacsp"
+aquacsp_registry = "4.5.19318"
 
 #################################################
 # DNS Configuration - INPUT REQUIRED
 # You must have already configured a domain name
 # and hosted Zone in Route 53 for this to work!!!
 #################################################
-dns_domain= "securitynoodles.com"
+dns_domain   = "securitynoodles.com"
 console_name = "aqua"
 
 ###################################################
 # Security Group Configuration - INPUT REQUIRED
 # Avoid leaving the Aqua CSP open to the world!!!
+# Enter a list of IPs
+# e.g. aqua_console_access = ["0.0.0.0/32", "0.0.0.0/32"]
 ###################################################
-aqua_console_access = "0.0.0.0/0"
+aqua_console_access = ["0.0.0.0/0"]
 <snip>
-<snip>
+
 #################################################
 # EC2 Configuration - INPUT REQUIRED
+# Don't add the .pem of the file name
 #################################################
-ssh-key_name = "aquacsp-test-tokyo"
+ssh-key_name  = "aquacsp-test-tokyo"
 instance_type = "m5.large"
+
+#################################################
+# RDS Configuration - OPTIONAL INPUT REQUIRED
 <snip>
 ```
 Make sure to configure your `aquacsp-infrastructure.config` file as mentioned previously. Here is my configuration:
@@ -250,13 +247,13 @@ Now we need to make sure you have the correct version of Terraform. Since I'm us
 
 ```
 jeremyturner: tfswitch 
-✔ 0.11.13 *recent
-Switched terraform to version "0.11.13"
+✔ 0.12.16 *recent
+Switched terraform to version "0.12.16"
 ```
 
 # Terraform Version
 
-As mentioned before, this template was run using Terraform `v0.11.13`. This is an important distinction because different Terraform versions do not play well together.
+As mentioned before, this template was run using Terraform `v0.12.16`. This is an important distinction because different Terraform versions do not play well together.
 
 # Gotchas
 
@@ -303,7 +300,7 @@ Feel free to read the information from AWS called [Using Service-Linked Roles fo
 This often gets overlooked until it's too late but AWS won't let you create anything you want. This template makes uses of `m5.large` instances but some AWS accounts might have a quoto of zero for this size. Make sure to check out your service limits because this will prevent this template from working. Below is screenshot from AWS CloudTrail showing that the `RunInstances` **Event name** has an **Error code** of *Client.InstanceLimitExceeded*:
 
 <p align="center">
-<img src="https://github.com/jeremyjturner/terraform-aqua-csp/blob/master/images/05-service-limits-exceeded-example.jpg" alt="Example of Exceeding AWS Service Limits." height="75%" width="75%">
+<img src="https://github.com/jeremyjturner/terraform-aqua-csp/blob/master/images/03-service-limits-exceeded-example.jpg" alt="Example of Exceeding AWS Service Limits." height="75%" width="75%">
 </p>
 
 ## Unsupported Instance Configuration
@@ -311,7 +308,7 @@ This often gets overlooked until it's too late but AWS won't let you create anyt
 This one is a bit tricky because as long as you haven't reached your service limits, you'd assume that you can launch any instance type that is supported by the ECS ami. This is not true and if you try to use an instance such as m3.large, you'll get an **Error code** of *Client.Unsupported* in CloudTrail:
 
 <p align="center">
-<img src="https://github.com/jeremyjturner/terraform-aqua-csp/blob/master/images/06-unsupported-client-example.jpg" alt="Example of an unsupported ECS instance configuration." height="75%" width="75%">
+<img src="https://github.com/aquasecurity/aqua-aws/blob/master/terraform/images/04-unsupported-client-example.jpg" alt="Example of an unsupported ECS instance configuration." height="75%" width="75%">
 </p>
 
 Feel free to dig deeper into these messages using the CloudTrail console or the AWS CLI. Here is an AWS CLi command (make sure to replace or remove the `--profile` portion for your command) to help you get started looking for these type of errors but feel free to reference the [lookup-events](https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/lookup-events.html) AWS CLI documentation:
@@ -319,6 +316,21 @@ Feel free to dig deeper into these messages using the CloudTrail console or the 
 ```
 aws --profile aquacsp cloudtrail lookup-events --lookup-attributes AttributeKey=EventName,AttributeValue=RunInstances --query 'Events[0:5]|[?contains(CloudTrailEvent, `errorCode`) == `true`]|[?contains(CloudTrailEvent, `errorMessage`) == `true`].[CloudTrailEvent]' --output text
 ```
+
+## The new ARN and resource ID format must be enabled to propagate tags
+
+If you have an older AWS account you'll get this one when you try to apply your Terraform template:
+
+```
+Error: InvalidParameterException: The new ARN and resource ID format must be enabled to propagate tags. Opt in to the new format and try again.
+```
+
+AWS has an article about this [Migrating your Amazon ECS deployment to the new ARN and resource ID format](https://aws.amazon.com/blogs/compute/migrating-your-amazon-ecs-deployment-to-the-new-arn-and-resource-id-format-2/) that outlines what to do.
+Below is a screenshot of making the setting for my IAM user–don't forget to save:
+
+<p align="center">
+<img src="https://github.com/aquasecurity/aqua-aws/blob/master/terraform/images/05-amazon-ecs-arn-and-resource-id-settings.jpg" alt="Example of how to configure Amazon ECS ARN and Resource settings for an IAM user." height="75%" width="75%">
+</p>
 
 # Running the Template Step-by-Step
 
@@ -334,32 +346,34 @@ aquacsp
 
 Note that in your environment, you'll probably have a different process. For example, some shops use a tool called [saml2aws](https://github.com/Versent/saml2aws) with an identity provider such as [JumpCloud](https://jumpcloud.com/) because they have multple AWS accounts running production services.
 
-Now that you have your AWS profile configured, run the following `init` command. Note that I have snipped out much of the output for brevity:
+Now that you have your AWS profile configured, run the following `terraform init` command. 
+
+Note that I have snipped out much of the output for brevity and this command might take a few minutes to complete the first time:
 
 ```
 jeremyturner: terraform init -backend-config="aquacsp-infrastructure.config"
 Initializing modules...
-- module.asg
-  Found version 2.11.0 of terraform-aws-modules/autoscaling/aws on registry.terraform.io
-  Getting source "terraform-aws-modules/autoscaling/aws"
-- module.db
-  Found version 1.31.0 of terraform-aws-modules/rds/aws on registry.terraform.io
-  Getting source "terraform-aws-modules/rds/aws"
+Downloading terraform-aws-modules/autoscaling/aws 3.4.0 for asg-gateway...
+- asg-gateway in .terraform/modules/asg-gateway/terraform-aws-modules-terraform-aws-autoscaling-07426a1
 <snip>
-
 Initializing the backend...
 
 Successfully configured the backend "s3"! Terraform will automatically
 use this backend unless the backend configuration changes.
 
+Initializing provider plugins...
+- Checking for available provider plugins...
+- Downloading plugin for provider "random" (hashicorp/random) 2.2.1...
 <snip>
-
 Terraform has been successfully initialized!
 
+You may now begin working with Terraform. Try running "terraform plan" to see
+any changes that are required for your infrastructure. All Terraform commands
+should now work.
 <snip>
 ```
 
-Now run the `plan` command:
+Now run the `terraform plan` command:
 
 ```
 jeremyturner: terraform plan
@@ -367,27 +381,33 @@ Refreshing Terraform state in-memory prior to plan...
 The refreshed state will be used to calculate this plan, but will not be
 persisted to local or remote state storage.
 
-data.template_file.userdata: Refreshing state...
+module.db.module.db_instance.data.aws_iam_policy_document.enhanced_monitoring: Refreshing state...
 data.aws_kms_alias.secretsmanager: Refreshing state...
-data.aws_secretsmanager_secret.admin_password: Refreshing state...
+data.aws_iam_role.service-role-ecs-service: Refreshing state...
 <snip>
 <snip>
-Plan: 64 to add, 0 to change, 0 to destroy.
+Plan: 97 to add, 0 to change, 0 to destroy.
 
 ------------------------------------------------------------------------
+<snip>
 ```
 
-And now it's time for the moment of truth...run the `apply` command:
+And now it's time for the moment of truth...run the `terraform apply` command:
 
 ```
 jeremyturner: terraform apply
-data.template_file.userdata: Refreshing state...
-data.aws_iam_role.service_role-ecs-service: Refreshing state...
-data.aws_secretsmanager_secret.db_password: Refreshing state...
-data.aws_kms_alias.secretsmanager: Refreshing state...
+data.aws_iam_role.service-role-ecs-service: Refreshing state...
+data.aws_secretsmanager_secret.license_token: Refreshing state...
+data.aws_secretsmanager_secret.container_repository: Refreshing state...
 <snip>
+An execution plan has been generated and is shown below.
+Resource actions are indicated with the following symbols:
+  + create
+ <= read (data resources)
+
+Terraform will perform the following actions:
 <snip>
-Plan: 64 to add, 0 to change, 0 to destroy.
+Plan: 97 to add, 0 to change, 0 to destroy.
 
 Do you want to perform these actions?
   Terraform will perform the actions described above.
@@ -395,72 +415,59 @@ Do you want to perform these actions?
 
   Enter a value: yes
 
-aws_cloudwatch_log_group.aquacsp-vpc: Creating...
+module.vpc.aws_eip.nat[0]: Creating...
 <snip>
-<snip>
-Apply complete! Resources: 64 added, 0 changed, 0 destroyed.
+Apply complete! Resources: 97 added, 0 changed, 0 destroyed.
 
 Outputs:
 
-alb_dns_name = aquacsp-alb-1763586840.ap-northeast-1.elb.amazonaws.com
-elb_dns_name = internal-aquacsp-aqua-gw-elb-926191805.ap-northeast-1.elb.amazonaws.com
-hostnames = [
-    aqua.securitynoodles.com
+console_url = [
+  "aqua.securitynoodles.com",
 ]
+gateway_url = internal-aquacsp-alb-gateway-2136472486.ap-northeast-1.elb.amazonaws.com
 ```
 While the things are spinning up, head over to your CloudWatch Log Groups and search for the `/ecs/aquacsp/` group. Here you can see your logs for the console and gateway in case something doesn't go as expected:
 
 <p align="center">
-<img src="https://github.com/jeremyjturner/terraform-aqua-csp/blob/master/images/07-aws-cloudwatch-log-group-example.jpg" alt="Example of Finding CloudWatch Logs for Aqua CSP." height="75%" width="75%">
+<img src="https://github.com/aquasecurity/aqua-aws/blob/master/terraform/images/06-aws-cloudwatch-log-group-example.jpg" alt="Example of Finding CloudWatch Logs for Aqua CSP." height="75%" width="75%">
 </p>
 
-Your console should be accessible by whatever FQDN you configured. In my example `aqua.securitynoodles.com`:
+Your console should be accessible by whatever FQDN you configured. In my example it's `aqua.securitynoodles.com`:
 
 <p align="center">
-<img src="https://github.com/jeremyjturner/terraform-aqua-csp/blob/master/images/08-aqua-csp-login-screen-example.jpg" alt="Example of Aqua CSP Login Screen." height="75%" width="75%">
+<img src="https://github.com/aquasecurity/aqua-aws/blob/master/terraform/images/07-aqua-csp-login-screen-example.jpg" alt="Example of Aqua CSP Login Screen." height="75%" width="75%">
 </p>
 
 Login using the administrator password you set and stored in AWS Secrets manager. After logging in, make sure that the Aqua Gateway is connected:
 
 <p align="center">
-<img src="https://github.com/jeremyjturner/terraform-aqua-csp/blob/master/images/09-aqua-csp-gw-connected-example.jpg" alt="Example of Aqua CSP Gateway successfully connected." height="75%" width="75%">
+<img src="https://github.com/aquasecurity/aqua-aws/blob/master/terraform/images/08-aqua-csp-gw-connected-example.jpg" alt="Example of Aqua CSP Gateway successfully connected." height="75%" width="75%">
 </p>
 
 # Cleaning Up
 
 Once you've tested everything, make sure to clean-up the resources your made. Otherwise, you'll be footing the bill for some beefy instances.
 
-Run `destroy` to delete all of the resources:
+Run `terraform destroy` to delete all of the resources:
 
 ```
 jeremyturner: terraform destroy
-data.template_file.userdata: Refreshing state...
-aws_cloudwatch_log_group.ecs: Refreshing state... (ID: /ecs/aquacsp)
-aws_acm_certificate.cert: Refreshing state... (ID: arn:aws:acm:ap-northeast-1:412806855401...e/154cbd10-c475-4901-9225-d84ab8ced0fd)
+module.vpc.aws_eip.nat[2]: Refreshing state... [id=eipalloc-0a7ea713170edef2f]
+module.vpc.aws_eip.nat[1]: Refreshing state... [id=eipalloc-0226adf5b4224f8af]
 <snip>
-<snip>
-<snip>
-  - module.db.module.db_subnet_group.aws_db_subnet_group.this
-
-
-Plan: 0 to add, 0 to change, 64 to destroy.
+Plan: 0 to add, 0 to change, 97 to destroy.
 
 Do you really want to destroy all resources?
   Terraform will destroy all your managed infrastructure, as shown above.
   There is no undo. Only 'yes' will be accepted to confirm.
 
   Enter a value: yes
-<snip>
-<snip>
-<snip>
-module.vpc.aws_vpc.this: Destroying... (ID: vpc-0fa3e733df9438cd4)
-module.vpc.aws_vpc.this: Destruction complete after 0s
 
-Destroy complete! Resources: 64 destroyed.
-jeremyturner: 
+aws_iam_role_policy_attachment.policy-attachment-ssm-ecs-instance: Destroying... [id=aquacsp-ecs-instance-iam-role-20191122155140505400000007]
+aws_security_group_rule.postgres-gateway-ingress-rds: Destroying... [id=sgrule-3686711490]
+<snip>
+aws_iam_role.rds-enhanced-monitoring: Destruction complete after 1s
+
+Destroy complete! Resources: 97 destroyed.
+jeremyturner:
 ```
-Finally, note that the VPC log group `/vpc/aquacsp` doesn't get destroyed so you'll need to manually delete it. For more context on this behaviour check out [VPC Flow Logs](https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs.html#flow-logs-iam) which states that you need to delete from the AWS console or CLI.
-
-# Special Thanks
-
-Special thanks to 加藤 諒 and his article (In Japanese) [「Aqua Container Security Platform」を立ててみた（本番環境用編）](https://dev.classmethod.jp/cloud/aws/aqua_server_on_aws_ecs/) and the source he released at [https://github.com/kmd2kmd/aqua_csp-on-aws_ecs](https://github.com/kmd2kmd/aqua_csp-on-aws_ecs) to inspire me to make my own template.

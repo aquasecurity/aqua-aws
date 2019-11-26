@@ -12,39 +12,30 @@
     "entryPoint": null,
     "portMappings": [
       {
-        "hostPort": ${aqua_server_console_port},
+        "hostPort": ${aqua_enforcer_port},
       "protocol": "tcp",
-      "containerPort": ${aqua_server_console_port}
-    },
-      {
-        "hostPort": ${aqua_server_gateway_port},
-      "protocol": "tcp",
-      "containerPort": ${aqua_server_gateway_port}
+      "containerPort": ${aqua_enforcer_port}
     }
     ],
     "command": null,
     "linuxParameters": null,
-    "cpu": 512,
+    "cpu": 256,
     "environment": [
       {
-        "name": "AQUA_GRPC_MODE",
-        "value": "1"
+        "name": "SCALOCK_GATEWAY_PRIVATE_IP",
+        "value": "${enforcer_dns}"
       },
       {
-        "name": "SCALOCK_AUDIT_DBHOST",
-        "value": "${db_hostname}"
+        "name": "SCALOCK_GATEWAY_FORCE_ENV_VARS",
+        "value": "true"
       },
       {
-        "name": "SCALOCK_AUDIT_DBNAME",
-        "value": "slk_audit"
+        "name": "AQUA_CONSOLE_SECURE_ADDRESS",
+        "value": "${gateway_dns}"
       },
       {
         "name": "SCALOCK_AUDIT_DBPORT",
         "value": "${db_port}"
-      },
-      {
-        "name": "SCALOCK_AUDIT_DBUSER",
-        "value": "${db_username}"
       },
       {
         "name": "SCALOCK_DBHOST",
@@ -55,12 +46,28 @@
         "value": "scalock"
       },
       {
+        "name": "SCALOCK_AUDIT_DBNAME",
+        "value": "slk_audit"
+      },
+      {
+        "name": "SCALOCK_GATEWAY_NAME",
+        "value": "gateway"
+      },
+      {
+        "name": "SCALOCK_AUDIT_DBUSER",
+        "value": "${db_username}"
+      },
+      {
         "name": "SCALOCK_DBPORT",
         "value": "${db_port}"
       },
       {
         "name": "SCALOCK_DBUSER",
         "value": "${db_username}"
+      },
+      {
+        "name": "SCALOCK_AUDIT_DBHOST",
+        "value": "${db_hostname}"
       }
     ],
     "resourceRequirements": null,
@@ -69,41 +76,28 @@
       "credentialsParameter": "${credentialsParameter}"
     },
     "dnsServers": null,
-    "mountPoints": [
-      {
-        "readOnly": null,
-        "containerPath": "/var/run/docker.sock",
-        "sourceVolume": "docker-socket"
-      }
-    ],
+    "mountPoints": [],
     "workingDirectory": null,
     "secrets": [
-      {
-        "name": "ADMIN_PASSWORD",
-        "valueFrom": "/aws/reference/secretsmanager/${admin_password}"
-      },
-      {
-        "name": "SCALOCK_DBPASSWORD",
-        "valueFrom": "/aws/reference/secretsmanager/${db_password}"
-      },
       {
         "name": "SCALOCK_AUDIT_DBPASSWORD",
         "valueFrom": "/aws/reference/secretsmanager/${db_password}"
       },
       {
-        "name": "LICENSE_TOKEN",
-        "valueFrom": "/aws/reference/secretsmanager/${license_token}"
+        "name": "SCALOCK_DBPASSWORD",
+        "valueFrom": "/aws/reference/secretsmanager/${db_password}"
       }
     ],
     "dockerSecurityOptions": null,
-    "memory": ${console_memory_size},
+    "memory": ${gateway_memory_size},
   "memoryReservation": null,
   "volumesFrom": [],
-  "image": "registry.aquasec.com/console:${registry_version}",
+  "image": "registry.aquasec.com/gateway:${registry_version}",
   "disableNetworking": null,
   "interactive": null,
   "healthCheck": null,
   "essential": true,
+  "links": [],
   "hostname": null,
   "extraHosts": null,
   "pseudoTerminal": null,
@@ -112,6 +106,6 @@
   "dockerLabels": null,
   "systemControls": null,
   "privileged": null,
-  "name": "aqua-server"
+  "name": "aqua-gateway"
   }
 ]
