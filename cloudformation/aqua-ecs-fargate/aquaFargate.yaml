@@ -196,8 +196,8 @@ Resources:
           - aqua-console
       RequiresCompatibilities:
         - FARGATE
-      Cpu: '512'
-      Memory: '1024'
+      Cpu: '4096'
+      Memory: '8192'
       NetworkMode: awsvpc
       ExecutionRoleArn: !Ref AquaEcsTaskRole
       ContainerDefinitions:
@@ -405,8 +405,8 @@ Resources:
       ExecutionRoleArn: !Ref AquaEcsTaskRole
       RequiresCompatibilities:
         - FARGATE
-      Cpu: '512'
-      Memory: '1024'
+      Cpu: '2048'
+      Memory: '4096'
       TaskRoleArn: !Ref AquaEcsTaskRole
       ContainerDefinitions:
         - Name: !Join 
