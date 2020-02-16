@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Aqua cloud native serverless audit stack
+Parameters:
+  AquaGatewayAddress:
+    Type: String
+    Description: Enter Aqua gateway address
+  AquaToken:
+    Type: String
+    Description: Enter Aqua enforcer-group token
+  S3Bucket:
+    Type: String
+    Description: Enter the S3 bucket where Aqua function.zip is stored
+  S3CodeKey:
+    Type: String
+    Description: Enter the object key here for example function.zip
+Resources:
+  aquaAuditHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main
+      Runtime: go1.x
+      CodeUri:
+        Bucket: !Ref S3Bucket
+        Key:  !Ref S3CodeKey
+      Environment:
+        Variables:
+          AQUA_GATEWAY:
+            Ref: AquaGatewayAddress
+          AQUA_NANOENFORCER_GATEWAY_TOKEN:
+            Ref: AquaToken
+      Timeout: 10
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action:
+              - sqs:ReceiveMessage
+              - sqs:DeleteMessage
+              - sqs:GetQueueAttributes
+              - sqs:ChangeMessageVisibility
+            Resource: !GetAtt aquaAuditQueue.Arn
+      Events:
+        SqsJobQueue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt aquaAuditQueue.Arn
+            BatchSize: 10
+  aquaAuditQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 86400
+      QueueName: aquaaudit
+      KmsDataKeyReusePeriodSeconds: 86400
+      KmsMasterKeyId: alias/aws/sqs
+      VisibilityTimeout: 1800
+Outputs:
+  aquaSQSUrl:
+    Description: Aqua SQS url for serverless protection
+    Value: !Ref aquaAuditQueue
+
