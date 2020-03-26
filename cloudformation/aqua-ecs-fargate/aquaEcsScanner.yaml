@@ -1,0 +1,1199 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: >-
+  Installs the Aqua Global Scanner componants (Console, Gateway, & Scanner) in ECS with RDS database.
+  Based on: https://github.com/aquasecurity/aqua-aws/tree/master/cloudformation/aqua-ecs
+
+###################################################
+#
+# Interface Metadata
+#
+###################################################
+
+Metadata:
+  'AWS::CloudFormation::Interface':
+    ParameterGroups:
+      - Label:
+          default: ECS Infrastructure Configuration
+        Parameters:
+          - EcsClusterName
+          - VpcId
+          - VpcCidr
+          - LbSubnet1
+          - LbSubnet2
+      - Label:
+          default: Aqua Security Configuration
+        Parameters:
+          - AquaConsoleAccess
+          - AquaConsolePassword
+          - AquaConsoleLicense
+          - AquaServerImage
+          - AquaGatewayImage
+          - AquaScannerImage
+          - CertificateArn
+      - Label:
+          default: >-
+            RDS Configuration: RDS Configuration
+        Parameters:
+          - RdsInstanceName
+          - RdsMasterUsername
+          - RdsMasterPassword
+          - RdsInstanceClass
+          - RdsStorage
+          - MultiAzDatabase
+
+    ParameterLabels:
+      AquaConsolePassword:
+        default: Aqua Console administrator password
+      AquaConsoleLicense:
+        default: Aqua Console license
+      CertificateArn:
+        default: SSL Certificate ARN
+      EcsClusterName:
+        default: ECS cluster name
+      VpcId:
+        default: VPC ID
+      VpcCidr:
+        default: VPC CIDR
+      LbSubnet1:
+        default: 1st Aqua LB Subnet
+      LbSubnet2:
+        default: 2nd Aqua LB Subnet
+      AquaConsoleAccess:
+        default: Web Console Source
+      RdsInstanceName:
+        default: RDS instance name
+      RdsMasterUsername:
+        default: RDS username
+      RdsMasterPassword:
+        default: RDS password
+      RdsInstanceClass:
+        default: RDS instance type
+      RdsStorage:
+        default: RDS storage size (GB)
+      MultiAzDatabase:
+        default: Enable Multi-AZ RDS
+
+###################################################
+#
+# Parameters
+#
+###################################################
+
+Parameters:
+  AquaServerImage:
+    Type: String
+    Description: Enter server image path on ECR
+  AquaGatewayImage:
+    Type: String
+    Description: Enter gateway image path on ECR
+  AquaScannerImage:
+    Type: String
+    Description: Enter Scaner image path on ECR
+  CertificateArn:
+    Type: String
+    Description: The SSL certificate ARN from ACM
+  EcsClusterName:
+    Description: Existing ECS cluster name
+    Type: String
+  VpcId:
+    Description: VpcId to deploy into
+    Type: 'AWS::EC2::VPC::Id'
+  VpcCidr:
+    Description: 'For use by load balancer service polling. Enter VPC CIDR. Ex: 10.0.0.0/16'
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Type: String
+  LbSubnet1:
+    Type: AWS::EC2::Subnet::Id
+    Description: 1st subnet for LB.
+  LbSubnet2:
+    Type: AWS::EC2::Subnet::Id
+    Description: 2nd subnet for LB.
+  AquaConsoleAccess:
+    Description: The IP address or range that may be used to access the Aqua Console
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+    ConstraintDescription: Must be a valid IP CIDR range of the form x.x.x.x/x
+  AquaConsolePassword:
+    NoEcho: true
+    Description: >-
+      Enter the administrator password of the Aqua Console. Must be at least 8 characters with at least 
+      1 upper case, 1 lower case, 1 digit , and 1 special characters".
+    Type: String
+    ConstraintDescription: >-
+      Password must be at least 8 characters long and have 4 out of the
+      following: one number, one lower case, one upper case, one special
+      character.
+  AquaConsoleLicense:
+    NoEcho: true
+    Description: >-
+      Enter the Aqua license token".
+    Type: String
+  RdsInstanceName:
+    Default: aquadb
+    Description: ''
+    Type: String
+    MinLength: '1'
+    MaxLength: '64'
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: Must begin with a letter and between 1 and 64 alphanumeric characters.
+  RdsMasterUsername:
+    Description: Enter the master username for the RDS instance.
+    Type: String
+    MinLength: '1'
+    MaxLength: '63'
+    AllowedPattern: '^[a-zA-Z0-9]*$'
+    ConstraintDescription: >-
+      Must be 1 to 63 characters long, begin with a letter, contain only
+      alphanumeric characters, and not be a reserved word by PostgreSQL engine.
+  RdsMasterPassword:
+    NoEcho: true
+    Description: >-
+      Enter the master password for the RDS instance. This password must contain
+      8 to 128 characters and can be any printable ASCII character except @, /,
+      or ".
+    Type: String
+    MinLength: '8'
+    MaxLength: '128'
+    AllowedPattern: >-
+      ^((?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])|(?=.*[0-9])(?=.*[a-z])(?=.*[!@#$%^&*])|(?=.*[0-9])(?=.*[A-Z])(?=.*[!@#$%^&*])|(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*])).{8,128}$
+    ConstraintDescription: >-
+      Password must be at least 9 characters long and have 3 out of the
+      following: one number, one lower case, one upper case, or one special
+      character.
+  RdsInstanceClass:
+    Description: ''
+    Type: String
+    Default: db.t2.medium
+    AllowedValues:
+      - db.t2.micro
+      - db.t2.small
+      - db.t2.medium
+      - db.t2.large
+      - db.t2.xlarge
+      - db.t2.2xlarge
+      - db.m4.large
+      - db.m4.xlarge
+      - db.m4.2xlarge
+      - db.m4.4xlarge
+      - db.m4.10xlarge
+      - db.m4.16xlarge
+      - db.r4.large
+      - db.r4.xlarge
+      - db.r4.2xlarge
+      - db.r4.4xlarge
+      - db.r4.8xlarge
+      - db.r4.16xlarge
+      - db.r3.large
+      - db.r3.2xlarge
+      - db.r3.4xlarge
+      - db.r3.8xlarge
+    ConstraintDescription: Must be a valid EC2 RDS instance type
+  RdsStorage:
+    Default: '40'
+    Description: ''
+    Type: Number
+    MinValue: '40'
+    MaxValue: '1024'
+    ConstraintDescription: Must be set to between 40 and 1024GB.
+  MultiAzDatabase:
+    Default: 'false'
+    Description: ''
+    Type: String
+    AllowedValues:
+      - true
+      - 'false'
+    ConstraintDescription: Must be either true or false.
+
+###################################################
+#
+# Resources
+#
+###################################################
+
+Resources:
+  AquaEcsCluster:
+    Type: 'AWS::ECS::Cluster'
+    Properties: 
+      ClusterName: !Ref EcsClusterName
+
+  AquaConsole:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    DependsOn:
+      - AquaEcsCluster
+    Properties:
+      Name: !Join 
+        - '-'
+        - - !Ref EcsClusterName
+          - console
+      Scheme: internal
+      SecurityGroups:
+        - !Ref AquaConsoleSecurityGroup
+      Subnets: [ !Ref LbSubnet1, !Ref LbSubnet2 ]
+      Type: application
+
+  CloudwatchLogsGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Join
+        - ''
+        - - '/aws/ecs/'
+          - !Ref EcsClusterName
+
+  AquaConsoleTaskDefinition:
+    Type: 'AWS::ECS::TaskDefinition'
+    DependsOn:
+      - AquaEcsCluster
+    Properties:
+      Family: !Join 
+        - '-'
+        - - !Ref EcsClusterName
+          - console
+      Volumes:
+        - Name: docker-socket
+      Cpu: '1024'
+      Memory: '4096'
+      ContainerDefinitions:
+        - Name: !Join 
+            - '-'
+            - - !Ref EcsClusterName
+              - console
+          Image: !Ref AquaServerImage
+          MountPoints:
+            - ContainerPath: /var/run/docker.sock
+              SourceVolume: docker-socket
+          PortMappings:
+            - ContainerPort: 8080
+            - ContainerPort: 8443
+          Essential: true
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref 'CloudwatchLogsGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: 'console'
+          Secrets:
+            - Name: ADMIN_PASSWORD
+              ValueFrom: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${rAquaConsolePasswordParam}'
+            - Name: LICENSE_TOKEN
+              ValueFrom: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${rAquaConsoleLicenseParam}'
+            - Name: SCALOCK_DBPASSWORD
+              ValueFrom: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${rAquaDbPasswordParam}'
+            - Name: SCALOCK_AUDIT_DBPASSWORD
+              ValueFrom: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${rAquaDbPasswordParam}'
+          Environment:
+            - Name: AQUA_GRPC_MODE
+              Value: '0'
+            - Name: SCALOCK_DBSSL
+              Value: require
+            - Name: SCALOCK_AUDIT_DBSSL
+              Value: require
+            - Name: SCALOCK_DBNAME
+              Value: scalock
+            - Name: BATCH_INSTALL_NAME
+              Value: ECS
+            - Name: BATCH_INSTALL_GATEWAY
+              Value: !GetAtt
+                - AquaNlb
+                - DNSName
+            - Name: SCALOCK_DBUSER
+              Value: !Ref RdsMasterUsername
+            - Name: SCALOCK_DBHOST
+              Value: !GetAtt 
+                - RdsInstance
+                - Endpoint.Address
+            - Name: SCALOCK_AUDIT_DBUSER
+              Value: !Ref RdsMasterUsername
+            - Name: SCALOCK_AUDIT_DBNAME
+              Value: slk_audit
+            - Name: SCALOCK_AUDIT_DBHOST
+              Value: !GetAtt 
+                - RdsInstance
+                - Endpoint.Address
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - "FARGATE"
+      TaskRoleArn: !Ref AquaEcsTaskRole
+      # FixMe:  Linter error - E3008: Property ExecutionRoleArn has no valid Refs to Resources at Resources/AquaConsoleTaskDefinition/Properties/ExecutionRoleArn/Ref
+      ExecutionRoleArn: !Ref AquaEcsTaskRole
+
+  AquaConsoleService:
+    Type: 'AWS::ECS::Service'
+    DependsOn:
+      - AquaEcsCluster
+      - AquaConsoleListenerHttps
+    Properties:
+      Cluster: !Ref EcsClusterName
+      ServiceName: !Join 
+        - '-'
+        - - !Ref EcsClusterName
+          - console
+      DesiredCount: 1
+      DeploymentConfiguration:
+        MaximumPercent: 100
+        MinimumHealthyPercent: 0
+      LaunchType: 'FARGATE'
+      LoadBalancers:
+        - ContainerName: !Join 
+            - '-'
+            - - !Ref EcsClusterName
+              - console
+          ContainerPort: 8443
+          TargetGroupArn: !Ref AquaConsoleTargetGroup
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups: 
+            - !Ref EcsSecurityGroup
+          Subnets: 
+            - !Ref LbSubnet1
+            - !Ref LbSubnet2
+      TaskDefinition: !Ref AquaConsoleTaskDefinition
+
+  AquaConsoleListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+      - Type: redirect
+        RedirectConfig:
+            StatusCode: HTTP_301
+            Port: '443'
+            Protocol: HTTPS
+            Path: '/'
+            Host: !GetAtt AquaConsole.DNSName
+      LoadBalancerArn: !Ref AquaConsole
+      Port: 80
+      Protocol: HTTP
+
+  AquaConsoleListenerHttps:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref AquaConsoleTargetGroup
+      LoadBalancerArn: !Ref AquaConsole
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - 
+          CertificateArn: !Ref CertificateArn
+
+  AquaConsoleTargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    DependsOn:
+      - AquaConsole
+    Properties:
+      TargetType: ip
+      HealthCheckIntervalSeconds: 6
+      HealthCheckPort: '8080'
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      Matcher:
+        HttpCode: '200'
+      Name: !Join 
+        - '-'
+        - - !Ref EcsClusterName
+          - console
+      Port: 8080
+      Protocol: HTTPS
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '60'
+      UnhealthyThresholdCount: 3
+      VpcId: !Ref VpcId
+
+  AquaNlb:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      Name: !Join 
+        - '-'
+        - - !Ref EcsClusterName
+          - NetworkLB
+      Scheme: internal
+      Subnets: [ !Ref LbSubnet1, !Ref LbSubnet2 ]
+      LoadBalancerAttributes: 
+        - Key: load_balancing.cross_zone.enabled
+          Value: 'true'
+      Type: network
+
+  AquaGatewayListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref AquaGatewayTargetGroup
+      LoadBalancerArn: !Ref AquaNlb
+      Port: 3622
+      Protocol: TCP
+
+  AquaGatewayTargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    DependsOn:
+      - AquaNlb
+    Properties:
+      TargetType: ip
+      HealthCheckIntervalSeconds: 30
+      HealthCheckProtocol: TCP
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      HealthCheckPort: '8089'
+      Name: !Join 
+        - '-'
+        - - !Ref EcsClusterName
+          - gateway
+      Port: 3622
+      Protocol: TCP
+      VpcId: !Ref VpcId
+
+  AquaGatewayTaskDefinition:
+    Type: 'AWS::ECS::TaskDefinition'
+    DependsOn:
+      - AquaEcsCluster
+    Properties:
+      Family: !Join 
+        - '-'
+        - - !Ref EcsClusterName
+          - gateway
+      TaskRoleArn: !Ref AquaEcsTaskRole
+      # FixMe:  Linter error - E3008: Property ExecutionRoleArn has no valid Refs to Resources at Resources/AquaConsoleTaskDefinition/Properties/ExecutionRoleArn/Ref
+      ExecutionRoleArn: !Ref AquaEcsTaskRole
+      Cpu: '512'
+      Memory: '1024'
+      ContainerDefinitions:
+        - Name: !Join 
+            - '-'
+            - - !Ref EcsClusterName
+              - gateway
+          Image: !Ref AquaGatewayImage
+          PortMappings:
+            - ContainerPort: 3622
+              HostPort: 3622
+              Protocol: tcp
+            - ContainerPort: 8089
+              HostPort: 8089
+              Protocol: tcp
+          Essential: true
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref 'CloudwatchLogsGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: 'gateway'
+          Secrets:        
+            - Name: SCALOCK_DBPASSWORD
+              ValueFrom: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${rAquaDbPasswordParam}'
+            - Name: SCALOCK_AUDIT_DBPASSWORD
+              ValueFrom: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${rAquaDbPasswordParam}'
+          Environment:
+            - Name: SCALOCK_DBSSL
+              Value: require
+            - Name: SCALOCK_AUDIT_DBSSL
+              Value: require
+            - Name: HEALTH_MONITOR
+              Value: '0.0.0.0:8089'
+            - Name: SCALOCK_DBUSER
+              Value: !Ref RdsMasterUsername 
+            - Name: SCALOCK_DBNAME
+              Value: scalock
+            - Name: SCALOCK_DBHOST
+              Value: !GetAtt 
+                - RdsInstance
+                - Endpoint.Address 
+            - Name: SCALOCK_AUDIT_DBUSER
+              Value: !Ref RdsMasterUsername 
+            - Name: SCALOCK_AUDIT_DBNAME
+              Value: slk_audit
+            - Name: SCALOCK_AUDIT_DBHOST
+              Value: !GetAtt 
+                - RdsInstance
+                - Endpoint.Address 
+            - Name: AQUA_CONSOLE_SECURE_ADDRESS
+              Value: !Join 
+                - ''
+                - - !GetAtt 
+                    - AquaNlb
+                    - DNSName
+                  - ':443'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - "FARGATE"
+
+  AquaGatewayService:
+    Type: 'AWS::ECS::Service'
+    DependsOn:
+      - AquaEcsCluster
+      - AquaNlb
+      - AquaGatewayListener
+    Properties:
+      Cluster: !Ref EcsClusterName
+      ServiceName: !Join 
+        - '-'
+        - - !Ref EcsClusterName
+          - gateway
+      DesiredCount: 2
+      DeploymentConfiguration:
+        MaximumPercent: 100
+        MinimumHealthyPercent: 50
+      LaunchType: 'FARGATE'
+      LoadBalancers:
+        - ContainerName: !Join 
+            - '-'
+            - - !Ref EcsClusterName
+              - gateway
+          ContainerPort: 3622
+          TargetGroupArn: !Ref AquaGatewayTargetGroup
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups: 
+            - !Ref EcsSecurityGroup
+          Subnets: 
+            - !Ref LbSubnet1
+            - !Ref LbSubnet2
+      TaskDefinition: !Ref AquaGatewayTaskDefinition
+
+  AquaConsoleSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Allow access to Aqua Console Instances
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: !Ref AquaConsoleAccess
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !Ref AquaConsoleAccess
+      Tags:
+        - Key: Name
+          Value: !Join 
+          - '-'
+          - - !Ref EcsClusterName
+            - console
+
+
+  AquaScannerService:
+    Type: 'AWS::ECS::Service'
+    DependsOn:
+      - AquaEcsCluster
+      - AquaNlb
+      - AquaScannerListener
+    Properties:
+      Cluster: !Ref EcsClusterName
+      ServiceName: !Join 
+        - '-'
+        - - !Ref EcsClusterName
+          - scanner
+      # ToDo: Change to 1 once we get Scanner working
+      DesiredCount: 1
+      DeploymentConfiguration:
+        MaximumPercent: 100
+        MinimumHealthyPercent: 50
+      LaunchType: 'FARGATE'
+      LoadBalancers:
+        - ContainerName: !Join 
+            - '-'
+            - - !Ref EcsClusterName
+              - scanner
+          ContainerPort: 8080
+          TargetGroupArn: !Ref AquaScannerTargetGroup
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups: 
+            - !Ref EcsSecurityGroup
+          Subnets: 
+            - !Ref LbSubnet1
+            - !Ref LbSubnet2
+      TaskDefinition: !Ref AquaScannerTaskDefinition
+
+  AquaScannerListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref AquaScannerTargetGroup
+      LoadBalancerArn: !Ref AquaNlb
+      Port: 8080
+      Protocol: TCP
+
+  AquaScannerTargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    DependsOn:
+      - AquaNlb
+    Properties:
+      TargetType: ip
+      HealthCheckIntervalSeconds: 30
+      HealthCheckProtocol: TCP
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      HealthCheckPort: '8089'
+      Name: !Join 
+        - '-'
+        - - !Ref EcsClusterName
+          - scanner
+      Port: 8080
+      Protocol: TCP
+      VpcId: !Ref VpcId
+
+  AquaScannerTaskDefinition:
+    Type: 'AWS::ECS::TaskDefinition'
+    DependsOn:
+      - AquaEcsCluster
+    Properties:
+      Family: !Join 
+        - '-'
+        - - !Ref EcsClusterName
+          - scanner
+      TaskRoleArn: !Ref AquaEcsTaskRole
+      # FixMe:  Linter error - E3008: Property ExecutionRoleArn has no valid Refs to Resources at Resources/AquaConsoleTaskDefinition/Properties/ExecutionRoleArn/Ref
+      ExecutionRoleArn: !Ref AquaEcsTaskRole
+      # Volumes:
+      #   - Name: docker-socket
+      Cpu: '512'
+      Memory: '1024'
+      ContainerDefinitions:
+        - Name: !Join 
+            - '-'
+            - - !Ref EcsClusterName
+              - scanner
+          Image: !Ref AquaScannerImage
+          # MountPoints:
+          #   - ContainerPath: /var/run/docker.sock
+          #     SourceVolume: docker-socket
+          PortMappings:
+            - ContainerPort: 8080
+              HostPort: 8080
+              Protocol: tcp
+          Essential: true
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref 'CloudwatchLogsGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: 'Scanner'
+
+          # ToDo: With Aqua's help, get Scanner to run (Secrets/Environment or Command) and get password from System Manager
+
+          Environment:
+            - Name: AQUA_DOCKERLESS_SCANNING
+              Value: "1"
+            # - Name: ADMIN_PASSWORD
+            #   ValueFrom: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${rAquaConsolePasswordParam}'
+            # - Name: AQUA_SCANNER_LOGICAL_NAME
+            #   Value: GlobalScanner
+            # - Name: AQUA_CONSOLE_SECURE_ADDRESS
+            #   Value: !Join 
+            #     - '' 
+            #     # - - 'http://'
+            #     - - !GetAtt
+            #         - AquaConsole
+            #         - DNSName
+            #       - ':8080'
+
+          # daemon -H http://aqua-server:8080 -U <SCAN_USER> -P <SCAN_PASSWORD>
+          Command: 
+            - 'daemon'
+            - "-H" 
+            - !Join 
+              - '' 
+              - - "https://"
+                - !GetAtt
+                  - AquaConsole
+                  - DNSName
+                - ':443'
+            - "-U"
+            - "administrator"
+            #  ToDo:  Get value 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${rAquaConsolePasswordParam}'
+            - "-P"
+            - "password"
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - "FARGATE"
+
+  AquaEcsTaskRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Join 
+        - '-'
+        - - !Ref EcsClusterName
+          - EcsTaskRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - !ImportValue LZ-oCommonDenyManagedPolicy
+      Path: /
+      Policies:
+        - PolicyName: !Join 
+            - '-'
+            - - !Ref EcsClusterName
+              - ScannerPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'ecr:GetDownloadUrlForLayer'
+                  - 'ecr:BatchGetImage'
+                  - 'ecr:DescribeImages'
+                  - 'ecr:GetAuthorizationToken'
+                  - 'ecr:DescribeRepositories'
+                  - 'ecr:ListImages'
+                  - 'ecr:BatchCheckLayerAvailability'
+                  - 'ecr:GetRepositoryPolicy'
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                  - 'ssm:GetParameters'
+                Resource: '*'
+              - !Ref 'AWS::NoValue'
+
+  RdsInstance:
+    Type: 'AWS::RDS::DBInstance'
+    Properties:
+      AllocatedStorage: !Ref RdsStorage
+      AutoMinorVersionUpgrade: false
+      VPCSecurityGroups:
+        - !Ref RdsSecurityGroup
+      DBName: !Ref RdsInstanceName
+      BackupRetentionPeriod: 7
+      DBInstanceIdentifier: !Ref RdsInstanceName
+      DBInstanceClass: !Ref RdsInstanceClass
+      DBSubnetGroupName: !Ref RdsInstanceSubnetGroup
+      Engine: postgres
+      EngineVersion: 9.6.9
+      KmsKeyId: !Sub 'arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:alias/LM_RDS_CMK'
+      MasterUsername: !Ref RdsMasterUsername
+      MasterUserPassword: !Ref RdsMasterPassword
+      MultiAZ: !Ref MultiAzDatabase
+      StorageType: gp2
+      StorageEncrypted: true
+
+  RdsInstanceSubnetGroup:
+    Type: 'AWS::RDS::DBSubnetGroup'
+    Properties:
+      DBSubnetGroupDescription: Source subnet
+      SubnetIds: [ !Ref LbSubnet1, !Ref LbSubnet2 ]
+
+  RdsSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Allow access to RDS Instances
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref EcsSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Join 
+          - '-'
+          - - !Ref EcsClusterName
+            - rds
+
+  EcsSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Interaction for containers
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - Description: Gateway
+          IpProtocol: tcp
+          FromPort: 3622
+          ToPort: 3622
+          CidrIp: !Ref VpcCidr
+        - Description: Database
+          IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: !Ref VpcCidr
+        - Description: Console healthcheck & Scanner
+          IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: !Ref VpcCidr
+        - Description: unknown
+          IpProtocol: tcp
+          FromPort: 8089
+          ToPort: 8089
+          CidrIp: !Ref VpcCidr
+        - Description: Console https
+          IpProtocol: tcp
+          FromPort: 8443
+          ToPort: 8443
+          CidrIp: !Ref VpcCidr
+      Tags:
+        - Key: Name
+          Value: !Join
+            - '-'
+            - - !Ref EcsClusterName
+              - 'containers'
+
+  ###################################################
+  # RDS Password
+  ###################################################
+
+  rAquaDbPasswordParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: 'Aqua Server Postgres Database Password'
+      Name: '/Containers/Aqua/GlobalScan/DbPassword'
+      Type: String
+      Value: ' '
+
+  rStoreDbPassword:
+    Type: Custom::StoreDbPassword
+    Properties:
+      ServiceToken: !GetAtt rStoreDbPasswordLambda.Arn
+      AquaDbPasswordParam: !Ref rAquaDbPasswordParam
+      AquaDbPasswordValue: !Ref RdsMasterPassword
+
+  rStoreDbPasswordLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            -
+              Action: 
+                - sts:AssumeRole
+              Effect: "Allow"
+              Principal:
+                Service: 
+                  - lambda.amazonaws.com
+      ManagedPolicyArns:
+        - !ImportValue LZ-oCommonDenyManagedPolicy
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - 
+          PolicyName: !Sub '${AWS::StackName}-StoreAquaDbPasswordRolePolicy'
+          PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                -
+                  Effect: Allow
+                  Action:
+                    - 'ssm:PutParameter'
+                  Resource: 
+                    - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${rAquaDbPasswordParam}'
+    
+  rStoreDbPasswordLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: 'Custom resource lambda function that stores the Aqua DB password in SSM parameter store as a Secure String.'
+      Runtime: 'nodejs10.x'
+      Role: !GetAtt rStoreDbPasswordLambdaRole.Arn
+      Handler: 'index.handler'
+      Timeout: 20
+      Code:
+        ZipFile: |
+          const AWS = require('aws-sdk');
+          const response = require('cfn-response');
+          function updateSsmParam(paramName, newVal) {
+            let ssm = new AWS.SSM();
+            return new Promise((resolve, reject) => {
+                ssm.putParameter({
+                    Name: paramName,
+                    Type: 'SecureString',
+                    Value: newVal,
+                    Overwrite: true
+                }, function (err, data) {
+                    if (err) {
+                        console.log(err);
+                        let errRes = {
+                          error: true,
+                          errorMessage: err 
+                        };
+                        reject(errRes);
+                    } else {
+                        console.log(`${JSON.stringify(data,undefined,2)}`);
+                        let dataRes = {
+                          error: false,
+                          message: data
+                        };
+                        resolve(dataRes);
+                    }
+                })
+            });
+          }
+          exports.handler = (event, context) => {
+            console.log('Received event :', event);
+            if (event.RequestType === 'Delete') {
+              console.log('CloudFormation delete initiated. No action required.');
+              let deleteRes = {
+                message: "No action required"
+              };
+              response.send(event, context, response.SUCCESS, deleteRes);
+            } else {
+              let dbPassSsmParamName = event.ResourceProperties.AquaDbPasswordParam;
+              let dbPasswordVal = event.ResourceProperties.AquaDbPasswordValue;
+              console.log(`CloudFormation create or update initiated.`);
+              console.log(`Now updating ${dbPassSsmParamName} SSM Parameter.`);
+              let updateDbPasswordParamPromise = updateSsmParam(dbPassSsmParamName, dbPasswordVal);
+              Promise.all([updateDbPasswordParamPromise]).then((results) => {
+                if (results[0].error) {
+                  response.send(event, context, response.FAILED, results[0].errorMessage);
+                } else {
+                  console.log(`Successfully updated ${dbPassSsmParamName} SSM Parameter.`);
+                  response.send(event, context, response.SUCCESS, results[0].message);
+                }
+              });
+            }
+          }
+
+  ###################################################
+  # Console Password
+  ###################################################
+
+  rAquaConsolePasswordParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: 'Aqua Server Console administrator password'
+      Name: '/Containers/Aqua/GlobalScan/ConsolePassword'
+      Type: String
+      Value: ' '
+
+  rStoreConsolePassword:
+    Type: Custom::StoreConsolePassword
+    Properties:
+      ServiceToken: !GetAtt rStoreConsolePasswordLambda.Arn
+      AquaConsolePasswordParam: !Ref rAquaConsolePasswordParam
+      AquaConsolePasswordValue: !Ref AquaConsolePassword
+
+  rStoreConsolePasswordLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            -
+              Action: 
+                - sts:AssumeRole
+              Effect: "Allow"
+              Principal:
+                Service: 
+                  - lambda.amazonaws.com
+      ManagedPolicyArns:
+        - !ImportValue LZ-oCommonDenyManagedPolicy
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - 
+          PolicyName: !Sub '${AWS::StackName}-StoreAquaConsolePasswordRolePolicy'
+          PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                -
+                  Effect: Allow
+                  Action:
+                    - 'ssm:PutParameter'
+                  Resource: 
+                    - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${rAquaConsolePasswordParam}'
+    
+  rStoreConsolePasswordLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: 'Custom resource lambda function that stores the Aqua console password in SSM parameter store as a Secure String.'
+      Runtime: 'nodejs10.x'
+      Role: !GetAtt rStoreConsolePasswordLambdaRole.Arn
+      Handler: 'index.handler'
+      Timeout: 20
+      Code:
+        ZipFile: |
+          const AWS = require('aws-sdk');
+          const response = require('cfn-response');
+          function updateSsmParam(paramName, newVal) {
+            let ssm = new AWS.SSM();
+            return new Promise((resolve, reject) => {
+                ssm.putParameter({
+                    Name: paramName,
+                    Type: 'SecureString',
+                    Value: newVal,
+                    Overwrite: true
+                }, function (err, data) {
+                    if (err) {
+                        console.log(err);
+                        let errRes = {
+                          error: true,
+                          errorMessage: err 
+                        };
+                        reject(errRes);
+                    } else {
+                        console.log(`${JSON.stringify(data,undefined,2)}`);
+                        let dataRes = {
+                          error: false,
+                          message: data
+                        };
+                        resolve(dataRes);
+                    }
+                })
+            });
+          }
+          exports.handler = (event, context) => {
+            console.log('Received event :', event);
+            if (event.RequestType === 'Delete') {
+              console.log('CloudFormation delete initiated. No action required.');
+              let deleteRes = {
+                message: "No action required"
+              };
+              response.send(event, context, response.SUCCESS, deleteRes);
+            } else {
+              let consolePassSsmParamName = event.ResourceProperties.AquaConsolePasswordParam;
+              let ConsolePasswordVal = event.ResourceProperties.AquaConsolePasswordValue;
+              console.log(`CloudFormation create or update initiated.`);
+              console.log(`Now updating ${consolePassSsmParamName} SSM Parameter.`);
+              let updateConsolePasswordParamPromise = updateSsmParam(consolePassSsmParamName, ConsolePasswordVal);
+              Promise.all([updateConsolePasswordParamPromise]).then((results) => {
+                if (results[0].error) {
+                  response.send(event, context, response.FAILED, results[0].errorMessage);
+                } else {
+                  console.log(`Successfully updated ${consolePassSsmParamName} SSM Parameter.`);
+                  response.send(event, context, response.SUCCESS, results[0].message);
+                }
+              });
+            }
+          }
+
+  ###################################################
+  # Console License Token
+  ###################################################
+
+  rAquaConsoleLicenseParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: 'Aqua Server License Token'
+      Name: '/Containers/Aqua/GlobalScan/ConsoleLicense'
+      Type: String
+      Value: ' '
+
+  rStoreConsoleLicense:
+    Type: Custom::StoreConsoleLicense
+    Properties:
+      ServiceToken: !GetAtt rStoreConsoleLicenseLambda.Arn
+      AquaConsoleLicenseParam: !Ref rAquaConsoleLicenseParam
+      AquaConsoleLicenseValue: !Ref AquaConsoleLicense
+
+  rStoreConsoleLicenseLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            -
+              Action: 
+                - sts:AssumeRole
+              Effect: "Allow"
+              Principal:
+                Service: 
+                  - lambda.amazonaws.com
+      ManagedPolicyArns:
+        - !ImportValue LZ-oCommonDenyManagedPolicy
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - 
+          PolicyName: !Sub '${AWS::StackName}-StoreAquaConsoleLicenseRolePolicy'
+          PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                -
+                  Effect: Allow
+                  Action:
+                    - 'ssm:PutParameter'
+                  Resource: 
+                    - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${rAquaConsoleLicenseParam}'
+    
+  rStoreConsoleLicenseLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: 'Custom resource lambda function that stores the Aqua console Token in SSM parameter store as a Secure String.'
+      Runtime: 'nodejs10.x'
+      Role: !GetAtt rStoreConsoleLicenseLambdaRole.Arn
+      Handler: 'index.handler'
+      Timeout: 20
+      Code:
+        ZipFile: |
+          const AWS = require('aws-sdk');
+          const response = require('cfn-response');
+          function updateSsmParam(paramName, newVal) {
+            let ssm = new AWS.SSM();
+            return new Promise((resolve, reject) => {
+                ssm.putParameter({
+                    Name: paramName,
+                    Type: 'SecureString',
+                    Value: newVal,
+                    Overwrite: true
+                }, function (err, data) {
+                    if (err) {
+                        console.log(err);
+                        let errRes = {
+                          error: true,
+                          errorMessage: err 
+                        };
+                        reject(errRes);
+                    } else {
+                        console.log(`${JSON.stringify(data,undefined,2)}`);
+                        let dataRes = {
+                          error: false,
+                          message: data
+                        };
+                        resolve(dataRes);
+                    }
+                })
+            });
+          }
+          exports.handler = (event, context) => {
+            console.log('Received event :', event);
+            if (event.RequestType === 'Delete') {
+              console.log('CloudFormation delete initiated. No action required.');
+              let deleteRes = {
+                message: "No action required"
+              };
+              response.send(event, context, response.SUCCESS, deleteRes);
+            } else {
+              let consolePassSsmParamName = event.ResourceProperties.AquaConsoleLicenseParam;
+              let ConsoleLicenseVal = event.ResourceProperties.AquaConsoleLicenseValue;
+              console.log(`CloudFormation create or update initiated.`);
+              console.log(`Now updating ${consolePassSsmParamName} SSM Parameter.`);
+              let updateConsoleLicenseParamPromise = updateSsmParam(consolePassSsmParamName, ConsoleLicenseVal);
+              Promise.all([updateConsoleLicenseParamPromise]).then((results) => {
+                if (results[0].error) {
+                  response.send(event, context, response.FAILED, results[0].errorMessage);
+                } else {
+                  console.log(`Successfully updated ${consolePassSsmParamName} SSM Parameter.`);
+                  response.send(event, context, response.SUCCESS, results[0].message);
+                }
+              });
+            }
+          }
+
+
+###################################################
+#
+# Outputs
+#
+###################################################
+
+Outputs:
+  AquaConsole:
+    Description: URL to access Aqua Security Console
+    Value: !Join 
+   scanner
+
+  AquaEcsTaskRole:
+    Description: IAM role assigned to access ECR
+    Value: !Ref AquaEcsTaskRole
