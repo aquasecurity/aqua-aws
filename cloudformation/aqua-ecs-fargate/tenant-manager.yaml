@@ -1,0 +1,462 @@
+#
+#	CloudFormation Template for the aqua tenant manager
+#
+AWSTemplateFormatVersion: "2010-09-09"
+Description: This template creates all the AWS resources needed to spin up the Aqua Tenant Manager
+
+######################################## CloudFormation Parameters #######################################
+Parameters:
+  pEnvironmentType:
+    Type: String
+    Description: Environment type (test or prod) to deploy CFT into (prod environment type will provision more powerfull/resillient databses)
+    Default: test
+    AllowedValues:
+      - test
+      - prod
+  pVPCId:
+    Type: 'AWS::EC2::VPC::Id'
+    Description: The VPC id that the stack will exist in.
+  pSubnet1:
+    Type: 'AWS::EC2::Subnet::Id'
+    Description: The subnet ID of one of the two subnets inside the vpc
+  pSubnet2:
+    Type: 'AWS::EC2::Subnet::Id'
+    Description: The subnet ID of the other subnet inside the vpc
+  pContainerImage:
+    Type: String
+    Description: The path of the docker container image for the aqua tenant manager. This image needs to exist in an ECR registry in this account before the stack can be created. You MUST specify the version tag at the end of the image (defaults to the location of the image in the test ECR repo)
+    Default: '712678753053.dkr.ecr.us-gov-west-1.amazonaws.com/aqua-tenantmanager:4.6'
+  pAquaTMDBName:
+    Type: String
+    Description: Name of the aqua tenant manager database created in the rds instance
+    Default: aqua_tenant_manager_db
+  pAquaTMDBUser:
+    Type: String
+    Description: Name of the master user for the aqua tenant manager database stored in rds
+    Default: aquaDatabaseAdmin
+  pAquaTMDBPassword:
+    Type: String
+    Description: Password for the master user for the aqua tenant manager database
+    NoEcho: true
+  pAquaTMAuditDBName:
+    Type: String
+    Description: Name of the aqua tenant manager audit database created in the rds instance
+    Default: aqua_tenant_manager_audit_db
+  pAquaTMAuditDBUser:
+    Type: String
+    Description: Name of the master user for the aqua tenant manager audit database stored in rds
+    Default: aquaAuditDatabaseAdmin
+  pAquaTMAuditDBPassword:
+    Type: String
+    Description: Password for the master user for the aqua tenant manager audit database
+    NoEcho: true
+  pCertificate:
+    Type: String
+    Description: the arn of the cert to use for connections to the console (defaults to the cert stored in test)
+    Default: 'arn:aws-us-gov:acm:us-gov-west-1:712678753053:certificate/ef9e421a-91be-45e5-a7de-726eba7fbd2b'
+
+######################################## CloudFormation Conditions #######################################
+Conditions:
+  cEnvIsProd: !Equals [ !Ref pEnvironmentType, prod ]
+
+######################################## CloudFormation Resources ########################################
+Resources:
+  rRDSSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: The subnets to deploy the rds instances into
+      SubnetIds:
+        - !Ref pSubnet1
+        - !Ref pSubnet2
+
+  ############################## ECS #################################
+  rAquaTMECSCluster:
+    Type: AWS::ECS::Cluster
+
+  rAquaTMTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      ContainerDefinitions:
+        - Name: Aqua-Tenant-Manager-Container #the tenant manager container, whos image has to exist in ECR before the stack can be spun up
+          Image: !Ref pContainerImage
+          PortMappings:
+            - ContainerPort: 8081 #open port on container for tenant manager server on http
+            - ContainerPort: 8444 #open port on container for tenant manager server on https
+          Environment:
+            - Name: AQUA_TM_DBNAME
+              Value: !Ref pAquaTMDBName
+            - Name: AQUA_TM_DBUSER
+              Value: !Ref pAquaTMDBUser
+            - Name: AQUA_TM_DBHOST
+              Value: !GetAtt rRDSDatabaseAqua.Endpoint.Address
+            - Name: AQUA_TM_DBPORT
+              Value: '5432'
+            - Name: AQUA_TM_AUDIT_DBNAME
+              Value: !Ref pAquaTMAuditDBName
+            - Name: AQUA_TM_AUDIT_DBUSER
+              Value: !Ref pAquaTMAuditDBUser
+            - Name: AQUA_TM_AUDIT_DBHOST
+              Value: !GetAtt rRDSDatabaseAquaAudit.Endpoint.Address
+            - Name: AQUA_TM_AUDIT_DBPORT
+              Value: '5432'
+            - Name: SCALOCK_LOG_LEVEL
+              Value: DEBUG
+          Secrets:
+            - Name: AQUA_TM_DBPASSWORD
+              ValueFrom: !Ref rSSMParameterDBPassword
+            - Name: AQUA_TM_AUDIT_DBPASSWORD
+              ValueFrom: !Ref rSSMParameterAuditDBPassword
+      NetworkMode: awsvpc #the service that gets created that uses this MUST have a networkConfiguration set up with this network mode
+      ExecutionRoleArn: !Ref rECSTaskExecutionRole #role that allows ecs to pull images from ECR and create cloudwatch logs for your tasks
+      Cpu: '512'
+      Memory: '1024'
+
+  rAquaTMService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref rAquaTMECSCluster
+      TaskDefinition: !Ref rAquaTMTaskDefinition
+      LaunchType: FARGATE
+      DesiredCount: 2
+      DeploymentConfiguration:
+        MaximumPercent: 400
+        MinimumHealthyPercent: 100
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          SecurityGroups:
+            - !GetAtt rTMContainerBaseSG.GroupId
+          Subnets:
+            - !Ref pSubnet1
+            - !Ref pSubnet2
+      LoadBalancers:
+        - ContainerName: Aqua-Tenant-Manager-Container
+          ContainerPort: 8444
+          TargetGroupArn: !Ref rAquaTMHTTPSTargetGroup
+
+  ############################## RDS Databases #################################
+  rRDSDatabaseAqua:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: postgres
+      AllocatedStorage: '20' #the size of the DB in GB
+      MultiAZ: !If
+        - cEnvIsProd #if the environment is prod
+        - true #then use multiAZ for better stability
+        - false #else do not use this
+      DBInstanceClass: db.t2.small
+      MasterUsername: !Ref pAquaTMDBUser
+      MasterUserPassword: !Ref pAquaTMDBPassword
+      VPCSecurityGroups:
+        - !GetAtt rTMDatabaseSG.GroupId
+      DBSubnetGroupName: !Ref rRDSSubnetGroup
+      DBName: !Ref pAquaTMDBName
+      DeletionProtection: !If
+        - cEnvIsProd #if the environment is prod turn on deletion protection to be safe
+        - true
+        - false
+
+  rRDSDatabaseAquaAudit:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: postgres
+      AllocatedStorage: '20' #the size of the DB in GB
+      MultiAZ: !If
+        - cEnvIsProd #if the environment is prod
+        - true #then use multiAZ for better stability
+        - false #else do not use this
+      DBInstanceClass: db.t2.small
+      MasterUsername: !Ref pAquaTMAuditDBUser
+      MasterUserPassword: !Ref pAquaTMAuditDBPassword
+      VPCSecurityGroups:
+        - !GetAtt rTMAuditDatabaseSG.GroupId
+      DBSubnetGroupName: !Ref rRDSSubnetGroup
+      DBName: !Ref pAquaTMAuditDBName
+      DeletionProtection: !If
+        - cEnvIsProd #if the environment is prod turn on deletion protection to be safe
+        - true
+        - false
+
+  ############################## Load Balancer #################################
+  rAquaTMLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: load-balancer
+      IpAddressType: ipv4
+      Scheme: internal
+      SecurityGroups:
+        - !GetAtt rTMLoadBalancerSG.GroupId
+      Subnets:
+        - !Ref pSubnet1
+        - !Ref pSubnet2
+
+  rAquaTMLoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: redirect
+          RedirectConfig:
+            StatusCode: HTTP_301
+            Port: '443'
+            Protocol: HTTPS
+            Path: '/'
+            Host: !GetAtt rAquaTMLoadBalancer.DNSName
+      LoadBalancerArn: !Ref rAquaTMLoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  rAquaTMHTTPSLoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref rAquaTMHTTPSTargetGroup
+      LoadBalancerArn: !Ref rAquaTMLoadBalancer
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref pCertificate
+
+  rAquaTMHTTPSTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Port: 8444
+      Protocol: HTTPS
+      TargetType: ip
+      VpcId: !Ref pVPCId
+
+  ############################## SSM Parameters #################################
+  rSSMParameterDBPassword:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: Password for the aqua tenant manager database
+      Type: String
+      Value: ' '
+
+  rSSMParameterAuditDBPassword:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: Password for the aqua tenant manager audit database
+      Type: String
+      Value: ' '
+
+  ############################## IAM Roles #################################
+  rECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+              - ecs-tasks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Description: Execution role ECS uses to pull images from ECR or push container logs to cloudwatch
+      ManagedPolicyArns:
+        - arn:aws-us-gov:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+        - arn:aws-us-gov:iam::aws:policy/AmazonSSMReadOnlyAccess
+        - !Sub 'arn:aws-us-gov:iam::${AWS::AccountId}:policy/CommonDeny'
+
+  rSSMEncrypterCustomLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+              - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Description: Role the custom lambda will use that takes in the SSM parameters and stores the passwords inside them and encrypts them
+      Policies:
+        - PolicyName: SSMPutPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: 'ssm:PutParameter'
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${rSSMParameterDBPassword}'
+                  - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${rSSMParameterAuditDBPassword}'
+      ManagedPolicyArns:
+        - arn:aws-us-gov:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - !Sub 'arn:aws-us-gov:iam::${AWS::AccountId}:policy/CommonDeny'
+
+  ############################## Security Groups #################################
+  rTMContainerBaseSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: The security group for the tenant manager containers
+      VpcId: !Ref pVPCId
+      SecurityGroupEgress:
+        - CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+  rTMContainerSGIngressLoad:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Allows https traffic to the tenant manager containers coming from the load balancer
+      IpProtocol: tcp
+      FromPort: 8444
+      ToPort: 8444
+      SourceSecurityGroupId: !Ref rTMLoadBalancerSG
+      GroupId: !Ref rTMContainerBaseSG
+  rTMContainerSGIngressDB:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Allows traffic to the tenant manager containers coming from the rds database
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !Ref rTMDatabaseSG
+      GroupId: !Ref rTMContainerBaseSG
+  rTMContainerSGIngressAuditDB:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Allows traffic to the tenant manager containers coming from the rds audit database
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !Ref rTMAuditDatabaseSG
+      GroupId: !Ref rTMContainerBaseSG
+
+  rTMLoadBalancerSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: The security group for the tenant manager load balancer
+      VpcId: !Ref pVPCId
+      SecurityGroupIngress:
+        - CidrIp: "0.0.0.0/0"
+          IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+        - CidrIp: "0.0.0.0/0"
+          IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+      SecurityGroupEgress:
+        - CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+
+  rTMDatabaseSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: The security group for the tenant manager database
+      VpcId: !Ref pVPCId
+      SecurityGroupEgress:
+        - CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+  rTMDatabaseSGIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Allows traffic from the tenant manager containers to connect to the database
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !Ref rTMContainerBaseSG
+      GroupId: !Ref rTMDatabaseSG
+
+  rTMAuditDatabaseSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: The security group for the tenant manager audit database
+      VpcId: !Ref pVPCId
+      SecurityGroupEgress:
+        - CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+  rTMAuditDatabaseSGIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Allows traffic from the tenant manager containers to connect to the audit database
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !Ref rTMContainerBaseSG
+      GroupId: !Ref rTMAuditDatabaseSG
+
+  ############################## Custom Resource #################################
+  rTMEncryptSSMParameters:
+    Type: AWS::CloudFormation::CustomResource
+    DependsOn:
+      - rSSMEncrypterCustomLambdaRole
+    Properties:
+      ServiceToken: !GetAtt rTMCustomLambda.Arn
+      SSMParamTMDBRef: !Ref rSSMParameterDBPassword  #the arns of the ssm params
+      SSMParamTMAuditDBRef: !Ref rSSMParameterAuditDBPassword
+      DBpassword: !Ref pAquaTMDBPassword #the passwords
+      AuditDBpassword: !Ref pAquaTMAuditDBPassword
+
+  rTMCustomLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Custom resource lambda function that takes in the desired passwords for the databases from the input of the stack and stores them as encrypted SSM parameters
+      Runtime: nodejs12.x
+      Role: !GetAtt rSSMEncrypterCustomLambdaRole.Arn
+      Handler: index.handler
+      Timeout: 30
+      Code:
+        ZipFile: |
+          const AWS = require('aws-sdk');
+          const response = require('cfn-response');
+          function updateSsmParam(paramName, newVal) {
+              let ssm = new AWS.SSM();
+              return new Promise((resolve, reject) => {
+                  ssm.putParameter({
+                      Name: paramName,
+                      Type: 'SecureString',
+                      Value: newVal,
+                      Overwrite: true
+                  }, function (err, data) {
+                      if (err) {
+                          console.log(err);
+                          let errRes = {
+                              error: true,
+                              errorMessage: err
+                          };
+                          reject(errRes);
+                      } else {
+                          console.log(`${JSON.stringify(data,undefined,2)}`);
+                          let dataRes = {
+                              error: false,
+                              message: data
+                          };
+                          resolve(dataRes);
+                      }
+                  })
+              });
+          }
+          exports.handler = (event, context) => {
+              if (event.RequestType === 'Delete') {
+                  console.log('CloudFormation delete initiated. No action required.');
+                  let deleteRes = {
+                      message: "No action required"
+                  };
+                  response.send(event, context, response.SUCCESS, deleteRes);
+              } else {
+                  let aquaDBParameter = event.ResourceProperties.SSMParamTMDBRef;
+                  let aquaAuditDBParameter = event.ResourceProperties.SSMParamTMAuditDBRef;
+                  console.log(`CloudFormation create or update initiated. Encrypting the SSM parameters ${aquaDBParameter} and ${aquaAuditDBParameter}.`);
+                  console.log(`Now updating ${aquaDBParameter} and ${aquaAuditDBParameter} SSM Parameters.`);
+                  let encryptSSMParam1 = updateSsmParam(aquaDBParameter, event.ResourceProperties.DBpassword);
+                  let encryptSSMParam2 = updateSsmParam(aquaAuditDBParameter, event.ResourceProperties.AuditDBpassword);
+                  Promise.all([encryptSSMParam1, encryptSSMParam2]).then((results) => {
+                      if (results[0].error) {
+                          response.send(event, context, response.FAILED, results[0].errorMessage);
+                      } else if (results[1].error) {
+                          response.send(event, context, response.FAILED, results[1].errorMessage);
+                      } else {
+                          console.log(`Successfully updated ${aquaDBParameter} and ${aquaAuditDBParameter} SSM Parameters.`);
+                          let res = {}
+                          response.send(event, context, response.SUCCESS, Object.assign(res, results[0].message, results[1].message));
+                      }
+                  });
+              }
+          }
+
+############################## Outputs #################################
+Outputs:
+  oEndpoint:
+    Description: The dns endpoint of the load balancer that we hit to reach to tenant manager console
+    Value: !GetAtt rAquaTMLoadBalancer.DNSName
