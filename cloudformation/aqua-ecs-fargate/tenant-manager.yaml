@@ -25,7 +25,7 @@ Parameters:
   pContainerImage:
     Type: String
     Description: The path of the docker container image for the aqua tenant manager. This image needs to exist in an ECR registry in this account before the stack can be created. You MUST specify the version tag at the end of the image (defaults to the location of the image in the test ECR repo)
-    Default: '712678753053.dkr.ecr.us-gov-west-1.amazonaws.com/aqua-tenantmanager:4.6'
+    Default: 'registry.aquasec.com/tenantmanager:5.0'
   pAquaTMDBName:
     Type: String
     Description: Name of the aqua tenant manager database created in the rds instance
@@ -53,7 +53,7 @@ Parameters:
   pCertificate:
     Type: String
     Description: the arn of the cert to use for connections to the console (defaults to the cert stored in test)
-    Default: 'arn:aws-us-gov:acm:us-gov-west-1:712678753053:certificate/ef9e421a-91be-45e5-a7de-726eba7fbd2b'
+    Default: 'arn:aws-us:acm:us-gov-west-1:712678753053:certificate/ef9e421a-91be-45e5-a7de-726eba7fbd2b'
 
 ######################################## CloudFormation Conditions #######################################
 Conditions:
@@ -99,7 +99,7 @@ Resources:
               Value: !GetAtt rRDSDatabaseAquaAudit.Endpoint.Address
             - Name: AQUA_TM_AUDIT_DBPORT
               Value: '5432'
-            - Name: SCALOCK_LOG_LEVEL
+            - Name: SCALOCK_LOG_LEVEL #set as debug for the tenant manager
               Value: DEBUG
           Secrets:
             - Name: AQUA_TM_DBPASSWORD
@@ -282,7 +282,7 @@ Resources:
                   - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${rSSMParameterDBPassword}'
                   - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${rSSMParameterAuditDBPassword}'
       ManagedPolicyArns:
-        - arn:aws-us-gov:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws-us:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
         - !Sub 'arn:aws-us-gov:iam::${AWS::AccountId}:policy/CommonDeny'
 
   ############################## Security Groups #################################
