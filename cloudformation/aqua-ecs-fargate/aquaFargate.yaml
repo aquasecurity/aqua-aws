@@ -196,8 +196,8 @@ Resources:
           - aqua-console
       RequiresCompatibilities:
         - FARGATE
-      Cpu: '512'
-      Memory: '1024'
+      Cpu: '406'
+      Memory: '8192'
       NetworkMode: awsvpc
       ExecutionRoleArn: !Ref AquaEcsTaskRole
       ContainerDefinitions:
@@ -338,6 +338,57 @@ Resources:
       LoadBalancerArn: !Ref AquaNlb
       Port: '3622'
       Protocol: TCP
+  AquaGatewayTargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    DependsOn:
+      - AquaNlb
+    Properties:
+      TargetType: ip
+      HealthCheckIntervalSeconds: 30
+      HealthCheckProtocol: TCP
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      HealthCheckPort: 8089
+      Name: !Join
+        - '-'
+        - - !Ref EcsClusterName
+          - aqua-gateway
+      Port: '3622'
+      Protocol: TCP
+      VpcId: !Ref VpcId
+  AquaGatewayGrpcListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    DependsOn:
+      - AquaGatewayGrpcTargetGroup
+      - AquaNlb
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref AquaGatewayGrpcTargetGroup
+      LoadBalancerArn: !Ref AquaNlb
+      Port: '8444'
+      Protocol: TCP
+  AquaGatewayGrpcTargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    DependsOn:
+      - AquaGateway
+    Properties:
+      TargetType: ip
+      HealthCheckIntervalSeconds: 30
+      HealthCheckProtocol: TCP
+      HealthyThresholdCount: 2
+      HealthCheckPort: 8443
+      Name: !Join
+        - '-'
+        - - !Ref EcsClusterName
+          - aqua-gateway-grpc
+      Port: '8443'
+      Protocol: TCP
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '60'
+      UnhealthyThresholdCount: 2
+      VpcId: !Ref VpcId
   AquaConsoleGrpcListener:
     Type: 'AWS::ElasticLoadBalancingV2::Listener'
     DependsOn:
@@ -405,8 +456,8 @@ Resources:
       ExecutionRoleArn: !Ref AquaEcsTaskRole
       RequiresCompatibilities:
         - FARGATE
-      Cpu: '512'
-      Memory: '1024'
+      Cpu: '2048'
+      Memory: '4096'
       TaskRoleArn: !Ref AquaEcsTaskRole
       ContainerDefinitions:
         - Name: !Join 
@@ -420,6 +471,9 @@ Resources:
               Protocol: tcp
             - ContainerPort: '8089'
               HostPort: '8089'
+              Protocol: tcp
+            - ContainerPort: '8443'
+              HostPort: '8444'
               Protocol: tcp
           Essential: 'true'
           LogConfiguration:
@@ -470,6 +524,8 @@ Resources:
       - AquaNlb
       - AquaGatewayTargetGroup
       - AquaGatewayListener
+      - AquaGatewayGrpcListener
+      - AquaGatewayGrpcTargetGroup
     Properties:
       LaunchType: FARGATE
       NetworkConfiguration:
@@ -494,9 +550,15 @@ Resources:
               - aqua-gateway
           ContainerPort: '3622'
           TargetGroupArn: !Ref AquaGatewayTargetGroup
+        - ContainerName: !Join
+            - '-'
+            - - !Ref EcsClusterName
+              - aqua-gateway
+          ContainerPort: '8443'
+          TargetGroupArn: !Ref AquaGatewayGrpcTargetGroup
       TaskDefinition: !Ref AquaGatewayTaskDefinition
   AquaConsoleSecurityGroup:
-    Type: 'AWS::EC2::SecurityGroup'
+    Type: 'AWS::EC2::SecurityGroup'InstanceSubnetGroup:
     Properties:
       GroupDescription: Allow access to Aqua Console Instances
       VpcId: !Ref VpcId
@@ -524,6 +586,10 @@ Resources:
         - IpProtocol: tcp
           FromPort: '3622'
           ToPort: '3622'
+          CidrIp: !Ref VpcCidr
+        - IpProtocol: tcp
+          FromPort: '8444'
+          ToPort: '3443'
           CidrIp: !Ref VpcCidr
         - IpProtocol: tcp
           FromPort: '8089'
@@ -685,6 +751,15 @@ Outputs:
           - AquaNlb
           - DNSName
         - ':3622'
+  AquaGatewayExternalGrpcConnection:
+    Description: >-
+      DNS to gateway gRPC
+    Value: !Join
+      - ''
+      - - !GetAtt
+          - AquaNlb
+          - DNSName
+        - ':8444'
   AquaEcsTaskRole:
     Description: IAM role assigned to access ECR
     Value: !Ref AquaEcsTaskRole
