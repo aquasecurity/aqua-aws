@@ -40,6 +40,10 @@
                             "SourceVolume": "aquasec-audit"
                         },
                         {
+                            "ContainerPath": "/opt/aquasec/tmp",
+                            "SourceVolume": "aquasec-tmp"
+                        },
+                        {
                             "ContainerPath": "/data",
                             "SourceVolume": "aquasec-data"
                         },
@@ -58,13 +62,18 @@
                             "ReadOnly": true
                         },
                         {
+                            "ContainerPath": "/host/sys",
+                            "SourceVolume": "sys",
+                            "ReadOnly": true
+                        },
+                        {
                             "ContainerPath": "/var/run",
                             "SourceVolume": "var-run"
                         }
                     ],
                     "Name": "aqua-agent",
                     "Environment": [{
-                            "Name": "SCALOCK_SERVER",
+                            "Name": "AQUA_SERVER",
                             "Value": {
                                 "Ref": "aquaGatewayAddress"
                             }
@@ -83,7 +92,7 @@
                             "Value": "yes"
                         },
                         {
-                            "Name": "SCALOCK_TOKEN",
+                            "Name": "AQUA_TOKEN",
                             "Value": {
                                 "Ref": "aquaToken"
                             }
