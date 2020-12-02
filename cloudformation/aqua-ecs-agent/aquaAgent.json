@@ -1,106 +1,192 @@
 {
-	"AWSTemplateFormatVersion": "2010-09-09",
-	"Description": "Install Aqua Agent on ECS.",
-	"Parameters": {
-		"aquaGatewayAddress": {
-			"Description": "The Aqua gateway address include port accessible from the Aqua Agent",
-			"Type": "String"
-		},
-		"aquaToken": {
-			"NoEcho": "true",
-			"Description": "Aqua Agent installation token retrieved from Aqua Management Console.",
-			"Type": "String"
-		},
-		"aquaAgentImage": {
-			"Type": "String",
-			"Description": "Enter image path on ECR."
-		},
-		"cluster": {
-			"Type": "String",
-			"Description": "Enter cluster name",
-			"Default": "test"
-		}
-	},
-	"Resources": {
-		"aquaAgentTaskdefinition": {
-			"Type": "AWS::ECS::TaskDefinition",
-			"Properties": {
-				"ContainerDefinitions": [{
-					"Memory": 256,
-					"Essential": "true",
-					"MountPoints": [{
-						"ContainerPath": "/var/run/docker.sock",
-						"SourceVolume": "docker-socket"
-					}],
-					"Name": "aqua-agent",
-					"Environment": [{
-							"Name": "SCALOCK_SERVER",
-							"Value": {
-								"Ref": "aquaGatewayAddress"
-							}
-						},
-						{
-							"Name": "AQUA_MODE",
-							"Value": "CONTAINER"
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Install Aqua Agent on ECS.",
+    "Parameters": {
+        "aquaGatewayAddress": {
+            "Description": "The Aqua gateway address include port accessible from the Aqua Agent",
+            "Type": "String"
+        },
+        "aquaToken": {
+            "NoEcho": "true",
+            "Description": "Aqua Agent installation token retrieved from Aqua Management Console.",
+            "Type": "String"
+        },
+        "aquaAgentImage": {
+            "Type": "String",
+            "Description": "Enter image path on ECR.",
+            "Default": "5.3"
+        },
+        "cluster": {
+            "Type": "String",
+            "Description": "Enter cluster name",
+            "Default": "test"
+        }
+    },
+    "Resources": {
+        "aquaAgentTaskdefinition": {
+            "Type": "AWS::ECS::TaskDefinition",
+            "Properties": {
+                "ContainerDefinitions": [{
+                    "Memory": 1024,
+                    "Essential": true,
+                    "Privileged": true,
+                    "MountPoints": [{
+                            "ContainerPath": "/host/opt/aquasec",
+                            "SourceVolume": "aquasec",
+                            "ReadOnly": true
+                        },
+                        {
+                            "ContainerPath": "/opt/aquasec/audit",
+                            "SourceVolume": "aquasec-audit"
+                        },
+                        {
+                            "ContainerPath": "/data",
+                            "SourceVolume": "aquasec-data"
+                        },
+                        {
+                            "ContainerPath": "/dev",
+                            "SourceVolume": "dev"
+                        },
+                        {
+                            "ContainerPath": "/host/etc",
+                            "SourceVolume": "etc",
+                            "ReadOnly": true
+                        },
+                        {
+                            "ContainerPath": "/host/proc",
+                            "SourceVolume": "proc",
+                            "ReadOnly": true
+                        },
+                        {
+                            "ContainerPath": "/var/run",
+                            "SourceVolume": "var-run"
+                        }
+                    ],
+                    "Name": "aqua-agent",
+                    "Environment": [{
+                            "Name": "SCALOCK_SERVER",
+                            "Value": {
+                                "Ref": "aquaGatewayAddress"
+                            }
+                        },
+                        {
+                            "Name": "AQUA_MODE",
+                            "Value": "SERVICE"
 
-						},
-						{
-							"Name": "AQUA_RUN_WATCHER",
-							"Value": "yes"
-						},
-						{
-							"Name": "SILENT",
-							"Value": "yes"
-						},
-						{
-							"Name": "SCALOCK_TOKEN",
-							"Value": {
-								"Ref": "aquaToken"
-							}
-						},
-						{
-							"Name": "RESTART_CONTAINERS",
-							"Value": "no"
-						}
-					],
-					"Image": {
-						"Ref": "aquaAgentImage"
-					},
-					"Cpu": 256
-				}],
-				"Volumes": [{
-					"Host": {
-						"SourcePath": "/var/run/docker.sock"
-					},
-					"Name": "docker-socket"
-				}],
-				"Family": {
-					"Fn::Join": [
-						"-",
-						[{
-								"Ref": "cluster"
-							},
-							"aqua-agent-install"
-						]
-					]
-				}
-			}
-		},
-		"aquaAgentDaemon": {
-			"DependsOn": [
-				"aquaAgentTaskdefinition"
-			],
-			"Type": "AWS::ECS::Service",
-			"Properties": {
-				"Cluster": {
-					"Ref": "cluster"
-				},
-				"SchedulingStrategy": "DAEMON",
-				"ServiceName": "aquaAgent",
-				"TaskDefinition": {
-					"Ref": "aquaAgentTaskdefinition"
-				}
-			}
-		}
-	}
+                        },
+                        {
+                            "Name": "AQUA_RUN_WATCHER",
+                            "Value": "yes"
+                        },
+                        {
+                            "Name": "SILENT",
+                            "Value": "yes"
+                        },
+                        {
+                            "Name": "SCALOCK_TOKEN",
+                            "Value": {
+                                "Ref": "aquaToken"
+                            }
+                        },
+                        {
+                            "Name": "RESTART_CONTAINERS",
+                            "Value": "no"
+                        },
+                        {
+                            "Name": "AQUA_SSH_ONLY_MODE",
+                            "Value": "1"
+                        },
+                        {
+                            "Name": "AQUA_RUNC_INTERCEPTION",
+                            "Value": "1"
+                        }
+                    ],
+                    "Image": {
+                        "Ref": "aquaAgentImage"
+                    },
+                    "Cpu": 768
+                }],
+                "Volumes": [{
+                        "Host": {
+                            "SourcePath": "/opt/aquasec"
+                        },
+                        "Name": "aquasec"
+                    },
+                    {
+                        "Host": {
+                            "SourcePath": "/var/run"
+                        },
+                        "Name": "var-run"
+                    },
+                    {
+                        "Host": {
+                            "SourcePath": "/dev"
+                        },
+                        "Name": "dev"
+                    },
+                    {
+                        "Host": {
+                            "SourcePath": "/sys"
+                        },
+                        "Name": "sys"
+                    },
+                    {
+                        "Host": {
+                            "SourcePath": "/proc"
+                        },
+                        "Name": "proc"
+                    },
+                    {
+                        "Host": {
+                            "SourcePath": "/etc"
+                        },
+                        "Name": "etc"
+                    },
+                    {
+                        "Host": {
+                            "SourcePath": "/opt/aquasec/tmp"
+                        },
+                        "Name": "aquasec-tmp"
+                    },
+                    {
+                        "Host": {
+                            "SourcePath": "/opt/aquasec/audit"
+                        },
+                        "Name": "aquasec-audit"
+                    },
+                    {
+                        "Host": {
+                            "SourcePath": "/opt/aquasec/data"
+                        },
+                        "Name": "aquasec-data"
+                    }
+                ],
+                "Family": {
+                    "Fn::Join": [
+                        "-", [{
+                                "Ref": "cluster"
+                            },
+                            "aqua-agent-install"
+                        ]
+                    ]
+                }
+            }
+        },
+        "aquaAgentDaemon": {
+            "DependsOn": [
+                "aquaAgentTaskdefinition"
+            ],
+            "Type": "AWS::ECS::Service",
+            "Properties": {
+                "Cluster": {
+                    "Ref": "cluster"
+                },
+                "SchedulingStrategy": "DAEMON",
+                "ServiceName": "aquaAgent",
+                "TaskDefinition": {
+                    "Ref": "aquaAgentTaskdefinition"
+                }
+            }
+        }
+    }
 }
