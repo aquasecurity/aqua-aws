@@ -173,7 +173,7 @@ Resources:
     DependsOn:
       - AquaConsoleSecurityGroup
     Properties:
-      Name: !Join 
+      Name: !Join
         - '-'
         - - !Ref EcsClusterName
           - AquaConsole
@@ -190,7 +190,7 @@ Resources:
       - AquaConsoleLogs
       - Secret0
     Properties:
-      Family: !Join 
+      Family: !Join
         - '-'
         - - !Ref EcsClusterName
           - aqua-console
@@ -201,7 +201,7 @@ Resources:
       NetworkMode: awsvpc
       ExecutionRoleArn: !Ref AquaEcsTaskRole
       ContainerDefinitions:
-        - Name: !Join 
+        - Name: !Join
             - '-'
             - - !Ref EcsClusterName
               - aqua-console
@@ -237,13 +237,13 @@ Resources:
             - Name: SCALOCK_DBNAME
               Value: scalock
             - Name: BATCH_INSTALL_GATEWAY
-              Value: !GetAtt 
+              Value: !GetAtt
                 - AquaNlb
                 - DNSName
             - Name: SCALOCK_DBUSER
               Value: !Ref RdsMasterUsername
             - Name: SCALOCK_DBHOST
-              Value: !GetAtt 
+              Value: !GetAtt
                 - RdsInstance
                 - Endpoint.Address
             - Name: SCALOCK_AUDIT_DBUSER
@@ -251,7 +251,7 @@ Resources:
             - Name: SCALOCK_AUDIT_DBNAME
               Value: slk_audit
             - Name: SCALOCK_AUDIT_DBHOST
-              Value: !GetAtt 
+              Value: !GetAtt
                 - RdsInstance
                 - Endpoint.Address
       TaskRoleArn: !Ref AquaEcsTaskRole
@@ -270,7 +270,7 @@ Resources:
           SecurityGroups:
             - !Ref AquaFargateSecurityGroup
           Subnets: !Ref EcsInstanceSubnets
-      ServiceName: !Join 
+      ServiceName: !Join
         - '-'
         - - !Ref EcsClusterName
           - aqua-console
@@ -279,13 +279,13 @@ Resources:
         MaximumPercent: '100'
         MinimumHealthyPercent: '0'
       LoadBalancers:
-        - ContainerName: !Join 
+        - ContainerName: !Join
             - '-'
             - - !Ref EcsClusterName
               - aqua-console
           ContainerPort: '8080'
           TargetGroupArn: !Ref AquaConsoleTargetGroup
-        - ContainerName: !Join 
+        - ContainerName: !Join
             - '-'
             - - !Ref EcsClusterName
               - aqua-console
@@ -315,7 +315,7 @@ Resources:
       HealthyThresholdCount: 2
       Matcher:
         HttpCode: '200'
-      Name: !Join 
+      Name: !Join
         - '-'
         - - !Ref EcsClusterName
           - aqua-console
@@ -360,8 +360,8 @@ Resources:
       HealthCheckProtocol: TCP
       HealthyThresholdCount: 2
       UnhealthyThresholdCount: 2
-      HealthCheckPort: 8089
-      Name: !Join 
+      HealthCheckPort: 3622
+      Name: !Join
         - '-'
         - - !Ref EcsClusterName
           - aqua-gateway
@@ -378,7 +378,7 @@ Resources:
       HealthCheckProtocol: TCP
       HealthyThresholdCount: 2
       HealthCheckPort: 8443
-      Name: !Join 
+      Name: !Join
         - '-'
         - - !Ref EcsClusterName
           - aqua-grpc
@@ -397,7 +397,7 @@ Resources:
       - AquaGatewayLogs
       - Secret0
     Properties:
-      Family: !Join 
+      Family: !Join
         - '-'
         - - !Ref EcsClusterName
           - aqua-gateway
@@ -409,7 +409,7 @@ Resources:
       Memory: '1024'
       TaskRoleArn: !Ref AquaEcsTaskRole
       ContainerDefinitions:
-        - Name: !Join 
+        - Name: !Join
             - '-'
             - - !Ref EcsClusterName
               - aqua-gateway
@@ -445,7 +445,7 @@ Resources:
             - Name: SCALOCK_DBNAME
               Value: scalock
             - Name: SCALOCK_DBHOST
-              Value: !GetAtt 
+              Value: !GetAtt
                 - RdsInstance
                 - Endpoint.Address
             - Name: SCALOCK_AUDIT_DBUSER
@@ -453,13 +453,13 @@ Resources:
             - Name: SCALOCK_AUDIT_DBNAME
               Value: slk_audit
             - Name: SCALOCK_AUDIT_DBHOST
-              Value: !GetAtt 
+              Value: !GetAtt
                 - RdsInstance
                 - Endpoint.Address
             - Name: AQUA_CONSOLE_SECURE_ADDRESS
-              Value: !Join 
+              Value: !Join
                 - ''
-                - - !GetAtt 
+                - - !GetAtt
                     - AquaNlb
                     - DNSName
                   - ':8443'
@@ -479,7 +479,7 @@ Resources:
             - !Ref AquaFargateSecurityGroup
           Subnets: !Ref EcsInstanceSubnets
       Cluster: !Ref EcsClusterName
-      ServiceName: !Join 
+      ServiceName: !Join
         - '-'
         - - !Ref EcsClusterName
           - aqua-gateway
@@ -488,7 +488,7 @@ Resources:
         MaximumPercent: '200'
         MinimumHealthyPercent: '100'
       LoadBalancers:
-        - ContainerName: !Join 
+        - ContainerName: !Join
             - '-'
             - - !Ref EcsClusterName
               - aqua-gateway
@@ -511,7 +511,7 @@ Resources:
           CidrIp: !Ref AquaConsoleAccess
         - IpProtocol: tcp
           FromPort: '8433'
-          ToPort: '8433'
+          ToPort: '8443'
           CidrIp: !Ref AquaConsoleAccess
   AquaFargateSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
@@ -540,7 +540,7 @@ Resources:
   AquaEcsTaskRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: !Join 
+      RoleName: !Join
         - '-'
         - - !Ref EcsClusterName
           - AquaEcsTaskRole
@@ -555,7 +555,7 @@ Resources:
               - 'sts:AssumeRole'
       Path: /
       Policies:
-        - PolicyName: !Join 
+        - PolicyName: !Join
             - '-'
             - - !Ref EcsClusterName
               - AquaScannerPolicy
@@ -576,7 +576,7 @@ Resources:
                   - 'logs:PutLogEvents'
                 Resource: '*'
               - !Ref 'AWS::NoValue'
-        - PolicyName: !Join 
+        - PolicyName: !Join
             - '-'
             - - !Ref EcsClusterName
               - AquaSecretsManagerPolicy
@@ -600,14 +600,14 @@ Resources:
   AquaNlb:
     Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
     Properties:
-      Name: !Join 
+      Name: !Join
         - '-'
         - - !Ref EcsClusterName
           - aquaNlb
       Scheme: internal
       Subnets: !Ref LbSubnets
       Type: network
-      LoadBalancerAttributes: 
+      LoadBalancerAttributes:
         - Key: load_balancing.cross_zone.enabled
           Value: true
   RdsInstance:
@@ -648,30 +648,30 @@ Resources:
           SourceSecurityGroupId: !Ref AquaFargateSecurityGroup
   Secret0:
     Type: AWS::SecretsManager::Secret
-    Properties: 
+    Properties:
       Description: Aqua RDS password
-      Name: !Join 
+      Name: !Join
         - '/'
         - - !Ref EcsClusterName
           - AquaRdsPassword
-      SecretString: 
+      SecretString:
         !Ref RdsMasterPassword
 Outputs:
   AquaConsole:
     Description: URL to access Aqua Security Console
-    Value: !Join 
+    Value: !Join
       - ''
       - - 'http://'
-        - !GetAtt 
+        - !GetAtt
           - AquaConsole
           - DNSName
         - ':8080'
   AquaConsoleGrpcConnection:
     Description: >-
       DNS to server gRPC
-    Value: !Join 
+    Value: !Join
       - ''
-      - - !GetAtt 
+      - - !GetAtt
           - AquaNlb
           - DNSName
         - ':8443'
@@ -679,9 +679,9 @@ Outputs:
     Description: >-
       Aqua Enforcer gateway startup connection string for use when Enforcers are
       external to VPC.
-    Value: !Join 
+    Value: !Join
       - ''
-      - - !GetAtt 
+      - - !GetAtt
           - AquaNlb
           - DNSName
         - ':3622'
