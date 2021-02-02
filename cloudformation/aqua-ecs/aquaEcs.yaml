@@ -514,13 +514,33 @@ Resources:
       - AquaEcsTaskRole
       - Secret1
     Properties:
+      PidMode: 'host'
       ContainerDefinitions:
         - Memory: 256
           Essential: 'true'
           MountPoints:
-            - ContainerPath: /var/run/docker.sock
-              SourceVolume: docker-socket
+            - ContainerPath: /var/run
+              SourceVolume: var-run
+            - ContainerPath: /dev
+              SourceVolume: dev
+            - ContainerPath: /host/opt/aquasec
+              SourceVolume: aquasec
+              ReadOnly: true
+            - ContainerPath: /opt/aquasec/tmp
+              SourceVolume: aquasec-tmp
+            - ContainerPath: /opt/aquasec/audit
+              SourceVolume: aquasec-audit
+            - ContainerPath: /host/proc
+              SourceVolume: proc
+              ReadOnly: true
+            - ContainerPath: /host/sys
+              SourceVolume: sys
+              ReadOnly: true
+            - ContainerPath: /host/etc
+              SourceVolume: etc
+              ReadOnly: true
           Name: aqua-enforcer
+          Privileged: true
           Secrets:
             - Name: AQUA_TOKEN
               ValueFrom: !Ref Secret1
@@ -529,12 +549,6 @@ Resources:
               Value: !GetAtt 
                 - AquaNlb
                 - DNSName
-            - Name: AQUA_MODE
-              Value: 'CONTAINER'    
-            - Name: AQUA_IMAGE_LITE_SYNC
-              Value: 'false'
-            - Name: AQUA_RUN_WATCHER
-              Value: 'yes'
             - Name: SILENT
               Value: 'yes'
             - Name: RESTART_CONTAINERS
@@ -548,8 +562,29 @@ Resources:
           Cpu: 256
       Volumes:
         - Host:
-            SourcePath: /var/run/docker.sock
-          Name: docker-socket
+            SourcePath: /var/run
+          Name: var-run
+        - Host:
+            SourcePath: /dev
+          Name: dev
+        - Host:
+            SourcePath: /opt/aquasec
+          Name: aquasec
+        - Host:
+            SourcePath: /opt/aquasec/tmp
+          Name: aquasec-tmp
+        - Host:
+            SourcePath: /opt/aquasec/audit
+          Name: aquasec-audit
+        - Host:
+            SourcePath: /proc
+          Name: proc
+        - Host:
+            SourcePath: /sys
+          Name: sys
+        - Host:
+            SourcePath: /etc
+          Name: etc
       Family: !Join 
         - '-'
         - - !Ref EcsClusterName
