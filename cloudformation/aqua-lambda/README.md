@@ -43,7 +43,7 @@ aws --region us-east-1 cloudformation create-stack --capabilities CAPABILITY_NAM
                  ParameterKey=S3CodeKey,ParameterValue=xxxx \
                  ParameterKey=CommunicationMethod,ParameterValue=grpc \
 ```
-Please note that the choosing communication method is SSH, following changes need to be done in the command:
+In case the choosen communication method is SSH, following changes need to be done in the command:
 * AquaGatewayAddress parameter value should include port 3622 (and not 8443)
 * CommunicationMethod parameter value should be ssh
 
