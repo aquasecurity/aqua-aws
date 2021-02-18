@@ -16,9 +16,9 @@ Parameters:
     Description: Enter the object key here for example function.zip
   CommunicationMethod:
     Type: String
-    Default: gRPC
+    Default: grpc
     Description: Please choose communication method (grpc is recommanded)
-    AllowedValues: [gRPC, SSH]  
+    AllowedValues: [grpc, ssh]  
 Resources:
   aquaAuditHandlerFunction:
     Type: AWS::Serverless::Function
