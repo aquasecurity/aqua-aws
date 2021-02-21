@@ -17,7 +17,7 @@ Parameters:
   CommunicationMethod:
     Type: String
     Default: grpc
-    Description: Relevant from aqua version 6.0 - Please choose communication method (grpc is recommanded)
+    Description: Supported from Aqua version 6.0 - Please choose communication method (grpc is recommanded)
     AllowedValues: [grpc, ssh]  
 Resources:
   aquaAuditHandlerFunction:
