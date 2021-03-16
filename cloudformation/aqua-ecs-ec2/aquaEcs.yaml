@@ -1,0 +1,952 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  This AWS CloudFormation template installs the Aqua Command Center componants
+  in ECS EC2.
+Metadata:
+  'AWS::CloudFormation::Interface':
+    ParameterGroups:
+      - Label:
+          default: ECS Infrastructure Configuration
+        Parameters:
+          - ECSClusterName
+          - VpcId
+          - VpcCidr
+          - EcsInstanceSubnets
+          - LbSubnets
+          - SSLCert
+          - LBScheme
+      - Label:
+          default: Aqua Security Configuration
+        Parameters:
+          - AquaConsoleAccess
+          - AquaServerImage
+          - AquaGatewayImage
+          - AquaEnforcerImage
+          - BatchInstallToken
+      - Label:
+          default: 'RDS Configuration: RDS Configuration'
+        Parameters:
+          - RdsInstanceName
+          - RdsInstanceClass
+          - RdsStorage
+          - MultiAzDatabase
+    ParameterLabels:
+      ECSClusterName:
+        default: ECS cluster name
+      VpcId:
+        default: VPC ID
+      VpcCidr:
+        default: VPC CIDR
+      EcsInstanceSubnets:
+        default: ECS Instance Subnets
+      LbSubnets:
+        default: Aqua LB Subnets
+      AquaConsoleAccess:
+        default: Web Console Source
+      RdsInstanceName:
+        default: RDS instance name
+      RdsInstanceClass:
+        default: RDS instance type
+      RdsStorage:
+        default: RDS storage size (GB)
+      MultiAzDatabase:
+        default: Enable Multi-AZ RDS
+      SSLCert:
+        default: SSL cert ARN
+Parameters:
+  BatchInstallToken:
+    Type: String
+    Description: A string used as the token in the Aqua Enforcer Install command.
+  AquaServerImage:
+    Type: String
+    Description: Enter server image path on ECR
+  AquaGatewayImage:
+    Type: String
+    Description: Enter gateway image path on ECR
+  AquaEnforcerImage:
+    Type: String
+    Description: Enter enforcer image path on ECR
+  ECSClusterName:
+    Description: Existing ECS cluster name
+    Type: String
+  EcsSecurityGroupId:
+    Type: 'AWS::EC2::SecurityGroup::Id'
+    Description: The security group assigned to the ECS cluster during cluster creation
+  VpcId:
+    Description: VpcId to deploy into
+    Type: 'AWS::EC2::VPC::Id'
+  VpcCidr:
+    Description: 'For use by load balancer service polling. Enter VPC CIDR. Ex: 10.0.0.0/16'
+    Type: String
+  EcsInstanceSubnets:
+    Type: 'List<AWS::EC2::Subnet::Id>'
+    Description: Select all the subnets ECS utilizes
+    ConstraintDescription: >-
+      Password must be at least 9 characters long and have 3 out of the
+      following: one number, one lower case, one upper case, or one special
+      character.
+  LbSubnets:
+   Type: 'List<AWS::EC2::Subnet::Id>'
+   Description: Select external ones if you need internet access.
+  LBScheme:
+   Type: String
+   Default: internet-facing
+   AllowedValues:
+      - internet-facing
+      - internal
+  AquaConsoleAccess:
+    Description: The Default(0.0.0.0/0) CIDR range will provide global access for Aqua Console. Please update your own IP address or CIDR range to restric the Aqua Console access.
+    Default: 0.0.0.0/0
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+    ConstraintDescription: Must be a valid IP CIDR range of the form x.x.x.x/x
+  RdsInstanceClass:
+    Description: ''
+    Type: String
+    Default: db.t3.medium
+    AllowedValues:
+      - db.t3.micro
+      - db.t3.small
+      - db.t3.medium
+      - db.t3.large
+      - db.t3.xlarge
+      - db.t3.2xlarge
+      - db.m5.large
+      - db.m5.xlarge
+      - db.m5.2xlarge
+      - db.m5.4xlarge
+      - db.m5.10xlarge
+      - db.m5.16xlarge
+      - db.r5.large
+      - db.r5.xlarge
+      - db.r5.2xlarge
+      - db.r5.4xlarge
+      - db.r5.8xlarge
+      - db.r5.16xlarge
+    ConstraintDescription: Must be a valid EC2 RDS instance type
+  AuditRdsInstanceClass:
+    Description: ''
+    Type: String
+    Default: db.t3.medium
+    AllowedValues:
+      - db.t3.micro
+      - db.t3.small
+      - db.t3.medium
+      - db.t3.large
+      - db.t3.xlarge
+      - db.t3.2xlarge
+      - db.m5.large
+      - db.m5.xlarge
+      - db.m5.2xlarge
+      - db.m5.4xlarge
+      - db.m5.10xlarge
+      - db.m5.16xlarge
+      - db.r5.large
+      - db.r5.xlarge
+      - db.r5.2xlarge
+      - db.r5.4xlarge
+      - db.r5.8xlarge
+      - db.r5.16xlarge
+    ConstraintDescription: Must be a valid EC2 RDS instance type
+  RdsStorage:
+    Default: '50'
+    Description: 'Disk space for RDS Database'
+    Type: Number
+    MinValue: '50'
+    MaxValue: '65536'
+    ConstraintDescription: Must be set to between 40 and 1024GB.
+  MultiAzDatabase:
+    Default: 'false'
+    Description: Multi-AZ RDS Deployment for High Availability. Prefer true for Enterprise Deployment
+    Type: String
+    AllowedValues:
+      - 'true'
+      - 'false'
+    ConstraintDescription: Must be either true or false.
+  SSLCert:
+    Description: ARN of the SSL cert to be used with console web UI LB
+    Type: String
+Resources:
+  AquaConsoleLB:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    DependsOn:
+      - EcsSecurityGroupIngress1
+      - EcsSecurityGroupIngress2
+      - EcsSecurityGroupIngress3
+      - EcsSecurityGroupIngress4
+      - EcsSecurityGroupIngress5
+      - AquaConsoleSecurityGroup
+    Properties:
+      Name: !Join 
+        - '-'
+        - - !Ref ECSClusterName
+          - AquaConsoleLB
+      Scheme: !Ref LBScheme
+      SecurityGroups:
+        - !Ref AquaConsoleSecurityGroup
+      Subnets: !Ref LbSubnets
+      Type: application
+  AquaConsoleTaskDefinition:
+    Type: 'AWS::ECS::TaskDefinition'
+    DependsOn:
+      - AquaEcsTaskRole
+      - RdsInstance
+      - AquaConsoleLogs
+      - Secret0
+      - SecretUsername
+    Properties:
+      Family: !Join 
+        - '-'
+        - - !Ref ECSClusterName
+          - aqua-console
+      RequiresCompatibilities:
+        - EC2
+      Volumes:
+        - Host:
+            SourcePath: /var/run/docker.sock
+          Name: docker-socket
+      ContainerDefinitions:
+        - Name: !Join 
+            - '-'
+            - - !Ref ECSClusterName
+              - aqua-console
+          Image: !Ref AquaServerImage
+          Cpu: '1024'
+          ulimits:
+            - name: nofile
+              softLimit: '1048576'
+              hardLimit: '1048576'
+          MountPoints:
+            - ContainerPath: /var/run/docker.sock
+              SourceVolume: docker-socket
+          PortMappings:
+            - ContainerPort: '8080'
+              HostPort: '8080'
+            - ContainerPort: '8443'
+              HostPort: '8443'
+              Protocol: tcp
+          Memory: '2048'
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Join ['-', ['/aqua/console', !Ref ECSClusterName]]
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: aquaConsole
+          Essential: 'true'
+          Secrets:
+            - Name: SCALOCK_DBPASSWORD
+              ValueFrom: !Ref Secret0
+            - Name: SCALOCK_AUDIT_DBPASSWORD
+              ValueFrom: !Ref Secret0
+            - Name: SCALOCK_DBUSER
+              ValueFrom: !Ref SecretUsername
+            - Name: SCALOCK_AUDIT_DBUSER
+              ValueFrom: !Ref SecretUsername
+            - Name: BATCH_INSTALL_TOKEN
+              ValueFrom: !Ref Secret1
+          Environment:
+            - Name: SCALOCK_LOG_LEVEL
+              Value: DEBUG
+            - Name: AQUA_GRPC_MODE
+              Value: 1
+            - Name: SCALOCK_DBSSL
+              Value: require
+            - Name: SCALOCK_AUDIT_DBSSL
+              Value: require
+            - Name: SCALOCK_DBNAME
+              Value: scalock
+            - Name: BATCH_INSTALL_NAME
+              Value: ECS
+            - Name: BATCH_INSTALL_GATEWAY
+              Value: !GetAtt 
+                - AquaNlb
+                - DNSName
+            - Name: SCALOCK_DBHOST
+              Value: !GetAtt 
+                - RdsInstance
+                - Endpoint.Address
+            - Name: SCALOCK_AUDIT_DBNAME
+              Value: slk_audit
+            - Name: SCALOCK_AUDIT_DBHOST
+              Value: !GetAtt 
+                - AuditRdsInstance
+                - Endpoint.Address
+      NetworkMode: bridge
+      TaskRoleArn: !Ref AquaEcsTaskRole
+      ExecutionRoleArn: !Ref AquaEcsTaskRole
+  AquaConsoleService:
+    Type: 'AWS::ECS::Service'
+    DependsOn:
+      - AquaConsoleTaskDefinition
+      - AquaConsoleListener
+      - AquaConsoleGrpcListener
+    Properties:
+      Cluster: !Ref ECSClusterName
+      ServiceName: !Join 
+        - '-'
+        - - !Ref ECSClusterName
+          - aqua-console
+      DesiredCount: '1'
+      PlacementStrategies:
+        - Type: spread
+          Field: 'attribute:ecs.availability-zone'
+        - Type: spread
+          Field: instanceId
+      DeploymentConfiguration:
+        MaximumPercent: '200'
+        MinimumHealthyPercent: '100'
+      LoadBalancers:
+        - ContainerName: !Join 
+            - '-'
+            - - !Ref ECSClusterName
+              - aqua-console
+          ContainerPort: '8080'
+          TargetGroupArn: !Ref AquaConsoleTargetGroup
+        - ContainerName: !Join 
+            - '-'
+            - - !Ref ECSClusterName
+              - aqua-console
+          ContainerPort: '8443'
+          TargetGroupArn: !Ref AquaConsoleGrpcTargetGroup
+      TaskDefinition: !Ref AquaConsoleTaskDefinition
+  AquaConsoleListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    DependsOn:
+      - AquaConsoleTargetGroup
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref AquaConsoleTargetGroup
+      LoadBalancerArn: !Ref AquaConsoleLB
+      Port: '443'
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref SSLCert
+      SslPolicy: ELBSecurityPolicy-FS-1-2-Res-2019-08
+  AquaConsoleGrpcListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    DependsOn:
+      - AquaConsoleGrpcTargetGroup
+      - AquaNlb
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref AquaConsoleGrpcTargetGroup
+      LoadBalancerArn: !Ref AquaNlb
+      Port: '8443'
+      Protocol: TCP
+  AquaConsoleTargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    DependsOn:
+      - AquaConsoleLB
+    Properties:
+      TargetType: instance
+      HealthCheckIntervalSeconds: 30
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 2
+      Matcher:
+        HttpCode: '200'
+      Name: !Join 
+        - '-'
+        - - !Ref ECSClusterName
+          - aqua-console
+      Port: '8080'
+      Protocol: HTTP
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '60'
+      UnhealthyThresholdCount: 3
+      VpcId: !Ref VpcId
+  AquaConsoleGrpcTargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    DependsOn:
+      - AquaConsoleLB
+    Properties:
+      TargetType: instance
+      HealthCheckIntervalSeconds: 30
+      HealthCheckProtocol: TCP
+      HealthyThresholdCount: 2
+      HealthCheckPort: 8080
+      Name: !Join 
+        - '-'
+        - - !Ref ECSClusterName
+          - aqua-grpc
+      Port: '8443'
+      Protocol: TCP
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '60'
+      UnhealthyThresholdCount: 2
+      VpcId: !Ref VpcId
+  AquaNlb:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      Name: !Join 
+        - '-'
+        - - !Ref ECSClusterName
+          - aquaNlb
+      Scheme: !Ref LBScheme
+      Subnets: !Ref LbSubnets
+      LoadBalancerAttributes: 
+        - Key: load_balancing.cross_zone.enabled
+          Value: true
+      Type: network
+  AquaGatewayListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    DependsOn:
+      - AquaGatewayTargetGroup
+      - AquaNlb
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref AquaGatewayTargetGroup
+      LoadBalancerArn: !Ref AquaNlb
+      Port: '3622'
+      Protocol: TCP
+  AquaGatewayTargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    DependsOn:
+      - AquaNlb
+    Properties:
+      TargetType: instance
+      HealthCheckIntervalSeconds: 30
+      HealthCheckProtocol: TCP
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      HealthCheckPort: 8089
+      Name: !Join 
+        - '-'
+        - - !Ref ECSClusterName
+          - aqua-gateway
+      Port: '3622'
+      Protocol: TCP
+      VpcId: !Ref VpcId
+  AquaGatewayTaskDefinition:
+    Type: 'AWS::ECS::TaskDefinition'
+    DependsOn:
+      - AquaEcsTaskRole
+      - RdsInstance
+      - AquaGatewayLogs
+      - Secret0
+    Properties:
+      Family: !Join 
+        - '-'
+        - - !Ref ECSClusterName
+          - aqua-gateway
+      TaskRoleArn: !Ref AquaEcsTaskRole
+      ExecutionRoleArn: !Ref AquaEcsTaskRole
+      RequiresCompatibilities:
+        - EC2
+      ContainerDefinitions:
+        - Name: !Join 
+            - '-'
+            - - !Ref ECSClusterName
+              - aqua-gateway
+          Image: !Ref AquaGatewayImage
+          ulimits:
+            - name: nofile
+              softLimit: '1048576'
+              hardLimit: '1048576'
+          PortMappings:
+            - ContainerPort: '3622'
+              HostPort: '3622'
+            - ContainerPort: '8089'
+              HostPort: '8089'
+              Protocol: tcp
+          Cpu: '1024'
+          Memory: '2048'
+          Essential: 'true'
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Join ['-', ['/aqua/gateway', !Ref ECSClusterName]]
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: aquaGateway
+          Secrets:
+            - Name: SCALOCK_DBPASSWORD
+              ValueFrom: !Ref Secret0
+            - Name: SCALOCK_AUDIT_DBPASSWORD
+              ValueFrom: !Ref Secret0
+            - Name: SCALOCK_DBUSER
+              ValueFrom: !Ref SecretUsername
+            - Name: SCALOCK_AUDIT_DBUSER
+              ValueFrom: !Ref SecretUsername
+          Environment:
+            - Name: SCALOCK_LOG_LEVEL
+              Value: DEBUG
+            - Name: SCALOCK_DBSSL
+              Value: require
+            - Name: SCALOCK_AUDIT_DBSSL
+              Value: require
+            - Name: HEALTH_MONITOR
+              Value: '0.0.0.0:8089'
+            - Name: SCALOCK_DBNAME
+              Value: scalock
+            - Name: SCALOCK_DBHOST
+              Value: !GetAtt 
+                - RdsInstance
+                - Endpoint.Address
+            - Name: SCALOCK_AUDIT_DBNAME
+              Value: slk_audit
+            - Name: SCALOCK_AUDIT_DBHOST
+              Value: !GetAtt 
+                - AuditRdsInstance
+                - Endpoint.Address 
+            - Name: AQUA_CONSOLE_SECURE_ADDRESS
+              Value: !Join 
+                - ''
+                - - !GetAtt 
+                    - AquaNlb
+                    - DNSName
+                  - ':8443'
+      NetworkMode: bridge
+  AquaGatewayService:
+    Type: 'AWS::ECS::Service'
+    DependsOn:
+      - AquaGatewayTaskDefinition
+      - AquaNlb
+      - AquaGatewayTargetGroup
+      - AquaGatewayListener
+      - EcsSecurityGroupIngress4
+    Properties:
+      Cluster: !Ref ECSClusterName
+      ServiceName: !Join 
+        - '-'
+        - - !Ref ECSClusterName
+          - aqua-gateway
+      DesiredCount: '2'
+      PlacementStrategies:
+        - Type: spread
+          Field: 'attribute:ecs.availability-zone'
+        - Type: spread
+          Field: instanceId
+      DeploymentConfiguration:
+        MaximumPercent: '200'
+        MinimumHealthyPercent: '100'
+      LoadBalancers:
+        - ContainerName: !Join 
+            - '-'
+            - - !Ref ECSClusterName
+              - aqua-gateway
+          ContainerPort: '3622'
+          TargetGroupArn: !Ref AquaGatewayTargetGroup
+      TaskDefinition: !Ref AquaGatewayTaskDefinition
+  AquaEnforcerTaskDefinition:
+    Type: 'AWS::ECS::TaskDefinition'
+    DependsOn:
+      - AquaGatewayService
+      - AquaEcsTaskRole
+      - Secret1
+    Properties:
+      PidMode: 'host'
+      ContainerDefinitions:
+        - Memory: '1024'
+          Essential: 'true'
+          MountPoints:
+            - ContainerPath: /var/run
+              SourceVolume: var-run
+            - ContainerPath: /dev
+              SourceVolume: dev
+            - ContainerPath: /host/opt/aquasec
+              SourceVolume: aquasec
+              ReadOnly: true
+            - ContainerPath: /opt/aquasec/tmp
+              SourceVolume: aquasec-tmp
+            - ContainerPath: /opt/aquasec/audit
+              SourceVolume: aquasec-audit
+            - ContainerPath: /host/proc
+              SourceVolume: proc
+              ReadOnly: true
+            - ContainerPath: /host/sys
+              SourceVolume: sys
+              ReadOnly: true
+            - ContainerPath: /host/etc
+              SourceVolume: etc
+              ReadOnly: true
+          Name: aqua-enforcer
+          Privileged: true
+          Secrets:
+            - Name: AQUA_TOKEN
+              ValueFrom: !Ref Secret1
+          Environment:
+            - Name: AQUA_SERVER
+              Value: !GetAtt 
+                - AquaNlb
+                - DNSName
+            - Name: SILENT
+              Value: 'yes'
+            - Name: RESTART_CONTAINERS
+              Value: 'no'
+            - Name: AQUA_LOGICAL_NAME
+              Value: !Join 
+                - '-'
+                - - ECS
+                  - !Ref ECSClusterName
+          Image: !Ref AquaEnforcerImage
+          Cpu: '512'
+      Volumes:
+        - Host:
+            SourcePath: /var/run
+          Name: var-run
+        - Host:
+            SourcePath: /dev
+          Name: dev
+        - Host:
+            SourcePath: /opt/aquasec
+          Name: aquasec
+        - Host:
+            SourcePath: /opt/aquasec/tmp
+          Name: aquasec-tmp
+        - Host:
+            SourcePath: /opt/aquasec/audit
+          Name: aquasec-audit
+        - Host:
+            SourcePath: /proc
+          Name: proc
+        - Host:
+            SourcePath: /sys
+          Name: sys
+        - Host:
+            SourcePath: /etc
+          Name: etc
+      Family: !Join 
+        - '-'
+        - - !Ref ECSClusterName
+          - aqua-enforcer
+      ExecutionRoleArn: !Ref AquaEcsTaskRole
+  AquaEnforcerDaemon:
+    DependsOn:
+      - AquaEnforcerTaskDefinition
+    Type: 'AWS::ECS::Service'
+    Properties:
+      Cluster: !Ref ECSClusterName
+      SchedulingStrategy: DAEMON
+      ServiceName: !Join 
+        - '-'
+        - - !Ref ECSClusterName
+          - aqua-enforcer
+      TaskDefinition: !Ref AquaEnforcerTaskDefinition
+  AquaConsoleSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Allow access to Aqua Console Instances
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: !Ref AquaConsoleAccess
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: !Ref AquaConsoleAccess
+        - IpProtocol: tcp
+          FromPort: '8433'
+          ToPort: '8433'
+          CidrIp: !Ref AquaConsoleAccess
+  EcsSecurityGroupIngress1:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Description: Allows inbound port 8080 from VPC to console.
+    Properties:
+      GroupId: !Ref EcsSecurityGroupId
+      CidrIp: !Ref VpcCidr
+      IpProtocol: tcp
+      FromPort: 8080
+      ToPort: 8080
+  EcsSecurityGroupIngress2:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Description: Allows inbound port 3622 from VPC to gateways.
+    Properties:
+      GroupId: !Ref EcsSecurityGroupId
+      CidrIp: !Ref VpcCidr
+      IpProtocol: tcp
+      FromPort: 3622
+      ToPort: 3622
+  EcsSecurityGroupIngress3:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Description: Allows inbound port 80 from VPC to gateways for LB health check.
+    Properties:
+      GroupId: !Ref EcsSecurityGroupId
+      CidrIp: !Ref VpcCidr
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+  EcsSecurityGroupIngress4:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Description: Allows inbound port 8089 from VPC to gateways helthcheck.
+    Properties:
+      GroupId: !Ref EcsSecurityGroupId
+      CidrIp: !Ref VpcCidr
+      IpProtocol: tcp
+      FromPort: 8089
+      ToPort: 8089
+  EcsSecurityGroupIngress5:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Description: Allows inbound port 8443 from VPC to console gRPC.
+    Properties:
+      GroupId: !Ref EcsSecurityGroupId
+      CidrIp: !Ref VpcCidr
+      IpProtocol: tcp
+      FromPort: 8443
+      ToPort: 8443
+  AquaEcsTaskRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Join 
+        - '-'
+        - - !Ref ECSClusterName
+          - AquaEcsTaskRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: !Join 
+            - '-'
+            - - !Ref ECSClusterName
+              - AquaScannerPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'ecr:GetDownloadUrlForLayer'
+                  - 'ecr:BatchGetImage'
+                  - 'ecr:DescribeImages'
+                  - 'ecr:GetAuthorizationToken'
+                  - 'ecr:DescribeRepositories'
+                  - 'ecr:ListImages'
+                  - 'ecr:BatchCheckLayerAvailability'
+                  - 'ecr:GetRepositoryPolicy'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                  - 'logs:CreateLogGroup'
+                  - 'logs:PutLogEvents'
+                  - 'logs:CreateLogDelivery'
+                  - 'logs:CreateLogStream'
+                  - 'logs:TagLogGroup'
+                Resource: '*'
+              - !Ref 'AWS::NoValue'
+        - PolicyName: !Join 
+            - '-'
+            - - !Ref ECSClusterName
+              - AquaSecretsManagerPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'secretsmanager:GetSecretValue'
+                Resource: 
+                  - !Ref Secret0
+                  - !Ref Secret1
+                  - !Ref SecretUsername
+        - PolicyName: !Join
+            - '-'
+            - - !Ref ECSClusterName
+              - KMSPermisions
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'kms:Decrypt'
+                  - 'kms:Encrypt'
+                Resource: '*'
+  AquaConsoleLogs:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      LogGroupName: !Join ['-', ['/aqua/console', !Ref ECSClusterName]]
+      RetentionInDays: 30
+  AquaGatewayLogs:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      LogGroupName: !Join ['-', ['/aqua/gateway', !Ref ECSClusterName]]
+      RetentionInDays: 30
+  LBLogsStoreBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      BucketName: !Sub '${AWS::StackName}-lb-accesslogs'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: BucketType
+          Value: Log
+    DeletionPolicy: Delete
+  LogsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref 'LBLogsStoreBucket'
+      PolicyDocument:
+        Version: '2008-10-17'
+        Statement:
+        - Sid: ELBAccessLogselbacc
+          Effect: Allow
+          Resource: !Join ['', [!GetAtt LBLogsStoreBucket.Arn, /*]]
+          Principal:
+            AWS: !Join ['', ['arn:aws:iam::', !Ref 'AWS::AccountId', ':root']]
+          Action: ['s3:PutObject']
+        - Sid: ELBAccessLogsServiceACL
+          Effect: Allow
+          Resource: !GetAtt LBLogsStoreBucket.Arn
+          Principal:
+            Service: delivery.logs.amazonaws.com
+          Action: ['s3:GetBucketAcl']
+        - Sid: ELBAccessLogsServicePut
+          Effect: Allow
+          Resource: !Join ['', [!GetAtt LBLogsStoreBucket.Arn, /*]]
+          Principal:
+            Service: delivery.logs.amazonaws.com
+          Action: ['s3:PutObject']
+          Condition:
+            StringEquals:
+              s3:x-amz-acl: bucket-owner-full-control
+  RdsInstance:
+    Type: 'AWS::RDS::DBInstance'
+    DependsOn:
+      - RdsSecurityGroup
+      - RdsInstanceSubnetGroup
+    Properties:
+      AllocatedStorage: !Ref RdsStorage
+      AutoMinorVersionUpgrade: 'false'
+      VPCSecurityGroups:
+        - !Ref RdsSecurityGroup
+      BackupRetentionPeriod: '7'
+      DBInstanceIdentifier: !Join ['-', ['aquasec-db', !Ref ECSClusterName]]
+      DBInstanceClass: !Ref RdsInstanceClass
+      DBSubnetGroupName: !Ref RdsInstanceSubnetGroup
+      DeleteAutomatedBackups: False
+      DeletionProtection: False
+      Engine: postgres
+      EngineVersion: 11.9
+      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref SecretUsername, ':SecretString}}' ]]
+      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref Secret0, ':SecretString}}' ]]
+      MultiAZ: !Ref MultiAzDatabase
+      StorageType: gp2
+      StorageEncrypted: True
+      #KmsKeyId: !GetAtt KMSKeyForDB.Arn
+  AuditRdsInstance:
+    Type: 'AWS::RDS::DBInstance'
+    DependsOn:
+      - RdsSecurityGroup
+      - RdsInstanceSubnetGroup
+    Properties:
+      AllocatedStorage: !Ref RdsStorage
+      AutoMinorVersionUpgrade: 'false'
+      VPCSecurityGroups:
+        - !Ref RdsSecurityGroup
+      BackupRetentionPeriod: '7'
+      DBInstanceIdentifier: !Join ['-', ['aquasec-audit-db', !Ref ECSClusterName]]
+      DBInstanceClass: !Ref AuditRdsInstanceClass
+      DBSubnetGroupName: !Ref RdsInstanceSubnetGroup
+      DeleteAutomatedBackups: False
+      DeletionProtection: False
+      Engine: postgres
+      EngineVersion: 11.9
+      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref SecretUsername, ':SecretString}}' ]]
+      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref Secret0, ':SecretString}}' ]]
+      MultiAZ: !Ref MultiAzDatabase
+      StorageType: gp2
+      StorageEncrypted: True
+      #KmsKeyId: !GetAtt KMSKeyForDB.Arn
+  RdsInstanceSubnetGroup:
+    Type: 'AWS::RDS::DBSubnetGroup'
+    Properties:
+      DBSubnetGroupDescription: Source subnet
+      SubnetIds: !Ref EcsInstanceSubnets
+  RdsSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Allow access to RDS Instances
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '5432'
+          ToPort: '5432'
+          SourceSecurityGroupId: !Ref EcsSecurityGroupId
+  Secret0:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Aqua RDS password
+      Name: !Join
+        - '/'
+        - - !Ref ECSClusterName
+          - AquaRdsPassword
+      GenerateSecretString:
+        PasswordLength: 16
+        ExcludeCharacters: '"@/\'
+  SecretUsername:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Aqua RDS Username
+      Name: !Join
+        - '/'
+        - - !Ref ECSClusterName
+          - AquaRdsUsername
+      SecretString: 'aquaadmin'
+  Secret1:
+    Type: AWS::SecretsManager::Secret
+    Properties: 
+      Description: Aqua batch install token
+      Name: !Join 
+        - '/'
+        - - !Ref ECSClusterName
+          - AquaBatchInstallToken
+      SecretString: 
+        !Ref BatchInstallToken
+Outputs:
+  AquaConsole:
+    Description: URL to access Aqua Security Console
+    Value: !Join 
+      - ''
+      - - 'https://'
+        - !GetAtt 
+          - AquaConsoleLB
+          - DNSName
+        #- ':8080'
+  AquaGatewayExternalConnection:
+    Description: >-
+      Aqua Enforcer gateway startup connection string for use when Enforcers are
+      external to VPC.
+    Value: !Join 
+      - ''
+      - - !GetAtt 
+          - AquaNlb
+          - DNSName
+        - ':3622'
+  AquaConsoleGrpcConnection:
+    Description: >-
+      DNS to server gRPC
+    Value: !Join 
+      - ''
+      - - !GetAtt 
+          - AquaNlb
+          - DNSName
+        - ':8443'
+  AquaEcsTaskRole:
+    Description: IAM role assigned to access ECR
+    Value: !Ref AquaEcsTaskRole
+  AquaDBInstanceIdentifier:
+    Description : Aqua DB Instance Identifier
+    Value : !Ref RdsInstance
+    Export :
+      Name : Aqua53DBInstanceID
+  AquaAuditDBInstanceIdentifier:
+    Description : Aqua audit DB Instance Identifier
+    Value : !Ref AuditRdsInstance
+    Export :
+      Name : Aqua53AuditDBInstanceID
