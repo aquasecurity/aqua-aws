@@ -1,0 +1,124 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+    This Cloudformation Template Installs Aqua Enforcer on ECS Cluster with EC2 compatibilities.
+Metadata:
+  'AWS::CloudFormation::Interface':
+    ParameterGroups:
+      - Label:
+          default: Aqua Component Configurations
+        Parameters:
+          - AquaGatewayAddress
+          - AquaToken
+          - AquaEnforcerImage
+          - ECSClusterName
+          #- SSLCert
+    ParameterLabels:
+        AquaGatewayAddress:
+            default: Existing Aqua Gateway DNS/IP
+        AquaToken:
+            default: Aqua Token
+        AquaEnforcerImage:
+            default: Aqua Enforcer Image
+        ECSClusterName:
+            default: ECS Cluster Name 
+Parameters:
+    AquaGatewayAddress:
+        Type: String
+        Description: The Aqua gateway DNS/IP.
+    AquaToken:
+        Description: Aqua Enforcer installation token retrieved from Aqua Management Console.
+        Type: String
+    AquaEnforcerImage:
+        Type: String
+        Description: Enter Enforcer image URI from ECR
+    ECSClusterName:
+        Type: String
+        Description: Enter the existing ECS Cluster name.
+Resources:
+    AquaEnforcerTaskDefinition:
+        Type: 'AWS::ECS::TaskDefinition'
+        Properties:
+          PidMode: 'host'
+          ContainerDefinitions:
+            - Memory: '1024'
+              Essential: 'true'
+              MountPoints:
+                - ContainerPath: /var/run
+                  SourceVolume: var-run
+                - ContainerPath: /dev
+                  SourceVolume: dev
+                - ContainerPath: /host/opt/aquasec
+                  SourceVolume: aquasec
+                  ReadOnly: true
+                - ContainerPath: /opt/aquasec/tmp
+                  SourceVolume: aquasec-tmp
+                - ContainerPath: /opt/aquasec/audit
+                  SourceVolume: aquasec-audit
+                - ContainerPath: /host/proc
+                  SourceVolume: proc
+                  ReadOnly: true
+                - ContainerPath: /host/sys
+                  SourceVolume: sys
+                  ReadOnly: true
+                - ContainerPath: /host/etc
+                  SourceVolume: etc
+                  ReadOnly: true
+              Name: aqua-enforcer
+              Privileged: true
+              Environment:
+                - Name: AQUA_SERVER
+                  Value: !Ref AquaGatewayAddress
+                - Name: AQUA_TOKEN
+                  Value: !Ref AquaToken
+                - Name: SILENT
+                  Value: 'yes'
+                - Name: RESTART_CONTAINERS
+                  Value: 'no'
+                - Name: AQUA_LOGICAL_NAME
+                  Value: !Join 
+                    - '-'
+                    - - ECS
+                      - !Ref ECSClusterName
+              Image: !Ref AquaEnforcerImage
+              Cpu: '512'
+          Volumes:
+            - Host:
+                SourcePath: /var/run
+              Name: var-run
+            - Host:
+                SourcePath: /dev
+              Name: dev
+            - Host:
+                SourcePath: /opt/aquasec
+              Name: aquasec
+            - Host:
+                SourcePath: /opt/aquasec/tmp
+              Name: aquasec-tmp
+            - Host:
+                SourcePath: /opt/aquasec/audit
+              Name: aquasec-audit
+            - Host:
+                SourcePath: /proc
+              Name: proc
+            - Host:
+                SourcePath: /sys
+              Name: sys
+            - Host:
+                SourcePath: /etc
+              Name: etc
+          Family: !Join 
+            - '-'
+            - - !Ref ECSClusterName
+              - aqua-enforcer
+    AquaEnforcerDaemon:
+        DependsOn:
+          - AquaEnforcerTaskDefinition
+        Type: 'AWS::ECS::Service'
+        Properties:
+          Cluster: !Ref ECSClusterName
+          SchedulingStrategy: DAEMON
+          ServiceName: !Join 
+            - '-'
+            - - !Ref ECSClusterName
+              - aqua-enforcer
+          TaskDefinition: !Ref AquaEnforcerTaskDefinition
