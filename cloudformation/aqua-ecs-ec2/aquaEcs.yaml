@@ -71,7 +71,7 @@ Parameters:
     Type: String
   EcsSecurityGroupId:
     Type: 'AWS::EC2::SecurityGroup::Id'
-    Description: The security group assigned to the ECS cluster during cluster creation
+    Description: The security group assigned to the ECS cluster or ECS Instances during cluster creation
   VpcId:
     Description: VpcId to deploy into
     Type: 'AWS::EC2::VPC::Id'
