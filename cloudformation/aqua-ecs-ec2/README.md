@@ -2,7 +2,7 @@
 
 # Description
 
-This page contains instructions for creating a deployment of Aqua CSP (Cloud native Security Platform) on an Amazon ECS EC2 cluster. It will deploy Aqua in single ECS cluster (All-In-One) with advance configurations like separate DB for Audit, SSL enablement for Aqua console, active-active mode. 
+This page contains instructions for creating a deployment of Aqua CSP (Cloud native Security Platform) on an Amazon ECS EC2 cluster. It will deploy all Aqua products in one ECS cluster (All-In-One) with advance configurations like separate DB for Audit, SSL enablement for Aqua console, active-active mode. 
  
 For high availability, you must deploy Aqua on 2 availability zones (AZs).
 
@@ -13,7 +13,7 @@ Your deployment will create these services:
  - Aqua Database, created on a new Amazon RDS instance, which includes 7 days of rolling backups
  - Aqua Audit Database, created on a new Amazon RDS instance, which includes 7 days of rolling backups
  - Aqua Gateways (2), each on a separate subnet, deployed with a Network Load Balancer
- - Aqua Enforcer (2), each on a ECS Instances, This count will increase based on your ECS Cluster Instances count 
+ - Aqua Enforcer, each on an ECS Instance. 
 
 In addition, it will create an IAM role for giving the Aqua Server access to ECR (Elastic Container Registry).
 
@@ -21,7 +21,7 @@ A CloudFormation template is used to deploy Aqua CSP. This can be done either wi
 
 # Requirements
 
- - An ECS cluster
+ - An ECS cluster at least 2 instance are registered.
  - A VPC with at least 2 subnets 
  - From Aqua Security: your Aqua credentials (username and password) and CSP License Token
 
@@ -76,15 +76,15 @@ ParameterKey=EcsSecurityGroupId,ParameterValue=XXXXX \
 ECSClusterName = The existing ECS cluster name and make sure the cluster must have two ec2 instances.
 VpcId = The VpcId to deploy into. Select the same VpcId where the ECS Cluster has deployed.
 VpcCidr = For use by load balancer service polling. Enter the VPC CIDR (example: 10.0.0.0/16)
-EcsInstanceSubnets = Select at least 2 subnets from VPC on which you want Aqua to be deployed.
-LbSubnets = Select External/Public subnets if you need Internet access.
+EcsInstanceSubnets = Select at least 2 subnets from VPC on which you want to deploy Aqua.
+LbSubnets = Subnets for LB. Select External/Public subnets if you want to access Aqua from Internet.
 SSLCert = Enter the SSL certificate ARN from Amazon Certificate Manager.
 LBScheme = Select Internet-facing if you need to access Aqua console from external.
 AquaConsoleAccess = The IP address or range that may be used to access the Aqua Console (Server UI) (example: x.x.x.x/32)  
 AquaServerImage = The ECR path for the Aqua Server product image 
 AquaGatewayImage = The ECR path for the Aqua Gateway product image 
 AquaEnforcerImage = The ECR path for the Aqua Enforcer product image
-BatchinstallToken = The Aqua Tolken, give any value in the  form of alpha-numeric (example: 6589db6a-1ee5-43d1-a06a-14a6abc38c2b). Once after the deployment, you need to approve the enforcers from Aqua console in default enforcer group then you can move them in to your own enforcer group.
+BatchinstallToken = The Aqua Token, enter any value in the  form of alpha-numeric (example: 6589db6a-1ee5-43d1-a06a-14a6abc38c2b). Once after the deployment, you need to approve the enforcers from Aqua console in default enforcer group then you can move them in to your own enforcer group.
 RdsInstanceClass = Set the RDS DB instance class for Aqua Server DB 
 RdsStorage = Set the size (GB) of the RDS DB instance
 MultiAzDatabase = Set to true to enable deployment in multiple Availability Zones
@@ -97,7 +97,7 @@ It will typically require up to 20 minutes for your stack to be created and depl
 When completed, you can obtain the DNS name of the Aqua Server UI from the console output, under key name `AquaConsole`.
 
 # Active-Active Deployment
-For Active-Active configuration we need add the below lines or code in the exisitng aquaFargate.yaml file.
+For Active-Active configuration you need add the below lines or code in the exisitng aquaEcs.yaml file.
 
 Resources-->AquaConsoleTaskDefinition-->Properties-->ContainerDefinitions-->Secrets
 
@@ -127,7 +127,7 @@ Resources-->AquaConsoleTaskDefinition-->Properties-->ContainerDefinitions-->Envi
 
 To upgrade your Aqua CSP version, modify the existing stack with the new Aqua product images.
 
-# Enforcer Deployment Only
+# Enforcer (Only) Deployment. 
 
 [![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/aquaFargate.yaml)
 
@@ -138,6 +138,7 @@ This will help you to deploy Aqua in multi-cluster, you can deploy enforcer in a
 Requirements
 
  - An ECS cluster(s)
+ - Aqua Gateway (existing) service DNS/IP
  - From Aqua Security: your Aqua credentials (username and password) and CSP License Token
  - Aqua Token
  
@@ -167,7 +168,7 @@ Requirements
 aws --region us-east-1 cloudformation create-stack --capabilities CAPABILITY_NAMED_IAM --stack-name aqua-ec2 --template-body file://aquaFargate.yaml \
 --parameters ParameterKey=AquaGatewayAddress,ParameterValue=xxxxx \
 ParameterKey=AquaToken,ParameterValue=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxx \
-ParameterKey=AquaEnforcerImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:enforcer-x.x \
+ParameterKey=AquaEnforcerImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:gateway-x.x\
 ParameterKey=ECSClusterName,ParameterValue=xxxxx
 ```
 
