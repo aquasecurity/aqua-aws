@@ -21,7 +21,7 @@ A CloudFormation template is used to deploy Aqua CSP. This can be done either wi
 
 # Requirements
 
- - An ECS cluster at least 2 instance are registered.
+ - An ECS cluster with at least 2 instance are registered.
  - A VPC with at least 2 subnets 
  - From Aqua Security: your Aqua credentials (username and password) and CSP License Token
 
@@ -52,7 +52,7 @@ When completed, you can obtain the DNS name of the Aqua Server UI from the conso
 
 1. Copy the following command:
 ```
-aws --region us-east-1 cloudformation create-stack --capabilities CAPABILITY_NAMED_IAM --stack-name aqua-ec2 --template-body file://aquaFargate.yaml \
+aws --region us-east-1 cloudformation create-stack --capabilities CAPABILITY_NAMED_IAM --stack-name aqua-ec2 --template-body file://aquaEcs.yaml \
 --parameters ParameterKey=ECSClusterName,ParameterValue=xxxxx \
 ParameterKey=VpcId,ParameterValue=vpc-xxxx \
 ParameterKey=VpcCidr,ParameterValue=x.x.x.x/x \
@@ -165,7 +165,7 @@ Requirements
 1. Copy the following command:
 ```
 
-aws --region us-east-1 cloudformation create-stack --capabilities CAPABILITY_NAMED_IAM --stack-name aqua-ec2 --template-body file://aquaFargate.yaml \
+aws --region us-east-1 cloudformation create-stack --capabilities CAPABILITY_NAMED_IAM --stack-name aqua-ec2 --template-body file://aquaEnforcer.yaml \
 --parameters ParameterKey=AquaGatewayAddress,ParameterValue=xxxxx \
 ParameterKey=AquaToken,ParameterValue=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxx \
 ParameterKey=AquaEnforcerImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:gateway-x.x\
