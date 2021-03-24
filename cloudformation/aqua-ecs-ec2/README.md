@@ -175,7 +175,7 @@ ParameterKey=ECSClusterName,ParameterValue=xxxxx
 2. Set the parameters as follows:
 ```
 
-AquaGatewayAddress = The Gateway Service DNS name or IP address
+AquaGatewayAddress = The Gateway Service DNS name or IP address (IP address with port number)
 AquaToken = Token from existing Aqua enforcer group of Aqua server
 AquaEnforcerImage = The ECR path for the Aqua Enforcer product image
 ECSClusterName = The existing ECS cluster name
