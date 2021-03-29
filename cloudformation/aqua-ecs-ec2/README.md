@@ -2,34 +2,34 @@
 
 # Description
 
-This page contains instructions for creating a deployment of Aqua CSP (Cloud native Security Platform) on an Amazon ECS EC2 cluster. It will deploy all Aqua products in one ECS cluster (All-In-One) with advance configurations like separate DB for Audit, SSL enablement for Aqua console, active-active mode. 
+This page contains instructions for creating a deployment of Aqua Enterprise on an Amazon ECS EC2 cluster. It will deploy all Aqua Enterprise components in one ECS cluster with advanced configurations like a separate DB for Audit, SSL enablement for the Aqua console, and active-active Server mode. 
  
 For high availability, you must deploy Aqua on 2 availability zones (AZs).
 
-These instructions are applicable to all versions of Aqua CSP.
+These instructions are applicable to all versions of Aqua Enterprise.
 
 Your deployment will create these services:
  - Aqua Server, deployed with an Amazon Application Load Balancer
  - Aqua Database, created on a new Amazon RDS instance, which includes 7 days of rolling backups
  - Aqua Audit Database, created on a new Amazon RDS instance, which includes 7 days of rolling backups
  - Aqua Gateways (2), each on a separate subnet, deployed with a Network Load Balancer
- - Aqua Enforcer, each on an ECS Instance. 
+ - Aqua Enforcer, each on an ECS instance
 
 In addition, it will create an IAM role for giving the Aqua Server access to ECR (Elastic Container Registry).
 
-A CloudFormation template is used to deploy Aqua CSP. This can be done either with the AWS CloudFormation Management Console or the AWS Command Line interface, as explained below.
+A CloudFormation template is used to deploy Aqua Enterprise. This can be done either with the AWS CloudFormation Management Console or the AWS Command Line interface, as explained below.
 
-# Requirements
+## Requirements
 
- - An ECS cluster with at least 2 instance are registered.
- - A VPC with at least 2 subnets 
- - From Aqua Security: your Aqua credentials (username and password) and CSP License Token
+ - An ECS cluster with at least 2 instances registered
+ - A VPC with at least 2 subnets
+ - From Aqua Security: your Aqua credentials (username and password) and Enterprise License Token
 
-# Before deployment
+## Before deployment
 
 1. Login to the Aqua Registry with your Aqua credentials:
    `docker login registry.aquasec.com -u <AQUA_USERNAME> -p <AQUA_PASSWORD>`
-2. Pull the Aqua product images for the Server, Gateway and Enforcer with these commands. 
+2. Pull the Aqua product images for the Server (Console), Gateway and Aqua Enforcer with these commands. 
    ```
    docker pull registry.aquasec.com/console:{version} 
    docker pull registry.aquasec.com/gateway:{version}
@@ -37,18 +37,18 @@ A CloudFormation template is used to deploy Aqua CSP. This can be done either wi
    ```
 3. Push all of the images to ECR.
 
-# Deployment method 1: CloudFormation Management Console
+## Deployment method 1: CloudFormation Management Console
 
  1. Click the <b>Launch Stack</b> icon at the top of this README.md file. This will take you to the <b>Create stack</b> function of the AWS CloudFormation Management Console.
- 2. Ensure that your AWS region is set to where you want to deploy Aqua CSP.
+ 2. Ensure that your AWS region is set to where you want to deploy Aqua Enterprise.
  3. Click "Next".
  4. Set or modify any of the parameters (per the explanations provided).
  5. Click "Next" to create the stack.
 
-It will typically require up to 20 minutes for Aqua CSP to be deployed.
+It will typically require up to 20 minutes for Aqua Enterprise to be deployed.
 When completed, you can obtain the DNS name of the Aqua Server UI from the console output, under key name `AquaConsole`.
 
-# Deployment method 2: Command Line interface
+## Deployment method 2: command line interface
 
 1. Copy the following command:
 ```
@@ -96,8 +96,9 @@ EcsSecurityGroupId = Select the security group ID which is same as ECS cluster s
 It will typically require up to 20 minutes for your stack to be created and deployed.
 When completed, you can obtain the DNS name of the Aqua Server UI from the console output, under key name `AquaConsole`.
 
-# Active-Active Deployment
-For Active-Active configuration you need add the below lines or code in the exisitng aquaEcs.yaml file.
+## Active-active Server deployment
+
+For an active-active Server configuration you need add the following lines or code to the exisitng aquaEcs.yaml file:
 
 Resources-->AquaConsoleTaskDefinition-->Properties-->ContainerDefinitions-->Secrets
 
@@ -125,24 +126,22 @@ Resources-->AquaConsoleTaskDefinition-->Properties-->ContainerDefinitions-->Envi
 
 # Version upgrade
 
-To upgrade your Aqua CSP version, modify the existing stack with the new Aqua product images.
+To upgrade your Aqua Enterprise version, modify the existing stack with the new Aqua product images.
 
-# Enforcer (Only) Deployment. 
+# Enforcer-only deployment
 
-[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/aquaFargate.yaml)
+## Description
 
-# Description
+The Aqua Server and Gateway are deployed on a given ECS EC2 cluster. In multi-cluster environments, you can deploy Aqua Enforcers on different clusters.
 
-This will help you to deploy Aqua in multi-cluster, you can deploy enforcer in any other ECS EC2 cluster from Aqua (Server & Gateway) deployed clusters.
+## Requirements
 
-Requirements
-
- - An ECS cluster(s)
+ - One or more ECS clusters
  - Aqua Gateway (existing) service DNS/IP
- - From Aqua Security: your Aqua credentials (username and password) and CSP License Token
+ - From Aqua Security: your Aqua credentials (username and password) and Aqua Enterprise License Token
  - Aqua Token
  
-# Before deployment
+## Before deployment
 
 1. Login to the Aqua Registry with your Aqua credentials:
    `docker login registry.aquasec.com -u <AQUA_USERNAME> -p <AQUA_PASSWORD>`
@@ -152,15 +151,15 @@ Requirements
    ```
 3. Push enforcer image to ECR.
 
-# Deployment method 1: CloudFormation Management Console
+## Deployment method 1: CloudFormation Management Console
 
  1. Click the <b>Launch Stack</b> icon at the top of this README.md file. This will take you to the <b>Create stack</b> function of the AWS CloudFormation Management Console.
- 2. Ensure that your AWS region is set to where you want to deploy Aqua CSP.
+ 2. Ensure that your AWS region is set to where you want to deploy Aqua Enterprise.
  3. Click "Next".
  4. Set or modify any of the parameters (per the explanations provided).
  5. Click "Next" to create the stack.
  
-# Deployment method 2: Command Line interface
+## Deployment method 2: Command Line interface
 
 1. Copy the following command:
 ```
@@ -176,27 +175,11 @@ ParameterKey=ECSClusterName,ParameterValue=xxxxx
 ```
 
 AquaGatewayAddress = The Gateway Service DNS name or IP address (IP address with port number)
-AquaToken = Token from existing Aqua enforcer group of Aqua server
+AquaToken = Token from existing Aqua Enforcer group of the Aqua Server
 AquaEnforcerImage = The ECR path for the Aqua Enforcer product image
 ECSClusterName = The existing ECS cluster name
 
 ```
 3. Run the AWS create-stack CLI command.
 
-It will deploy Aqua Enforcer in your desired cluster and the newly deployed enforcers will get add to the existing Aqua server.
-
-
-
-
-
-
-
-
-
-
-
- 
- 
- 
-
-
+It will deploy an Aqua Enforcer in your desired cluster and the newly deployed Enforcers will get added to the existing Aqua Server.
