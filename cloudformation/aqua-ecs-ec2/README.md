@@ -1,4 +1,4 @@
-[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/aquaFargate.yaml)
+[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/5.3/aquaEcs.yaml)
 
 # Description
 
@@ -129,7 +129,7 @@ To upgrade your Aqua CSP version, modify the existing stack with the new Aqua pr
 
 # Enforcer (Only) Deployment. 
 
-[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/aquaFargate.yaml)
+[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/5.3/aquaEnforcer.yaml)
 
 # Description
 
@@ -155,7 +155,7 @@ Requirements
 # Deployment method 1: CloudFormation Management Console
 
  1. Click the <b>Launch Stack</b> icon at the top of this README.md file. This will take you to the <b>Create stack</b> function of the AWS CloudFormation Management Console.
- 2. Ensure that your AWS region is set to where you want to deploy Aqua CSP.
+ 2. Ensure that your AWS region is set to where you want to deploy Aqua Enforcer.
  3. Click "Next".
  4. Set or modify any of the parameters (per the explanations provided).
  5. Click "Next" to create the stack.
@@ -168,7 +168,7 @@ Requirements
 aws --region us-east-1 cloudformation create-stack --capabilities CAPABILITY_NAMED_IAM --stack-name aqua-ec2 --template-body file://aquaEnforcer.yaml \
 --parameters ParameterKey=AquaGatewayAddress,ParameterValue=xxxxx \
 ParameterKey=AquaToken,ParameterValue=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxx \
-ParameterKey=AquaEnforcerImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:gateway-x.x\
+ParameterKey=AquaEnforcerImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:enforcer-x.x\
 ParameterKey=ECSClusterName,ParameterValue=xxxxx
 ```
 
@@ -184,6 +184,66 @@ ECSClusterName = The existing ECS cluster name
 3. Run the AWS create-stack CLI command.
 
 It will deploy Aqua Enforcer in your desired cluster and the newly deployed enforcers will get add to the existing Aqua server.
+
+# Scanner (Only) Deployment. 
+
+[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/5.3/aquaScanner.yaml)
+
+# Description
+
+This will help you to deploy Aqua in multi-cluster, you can deploy scanner in any other ECS EC2 cluster from Aqua (Server & Gateway) deployed clusters.
+
+Requirements
+
+ - An ECS cluster(s)
+ - Aqua Server DNS/IP
+ - From Aqua Security: your Aqua credentials (username and password) and CSP License Token
+ - Aqua Scanner User Name and Password
+ 
+# Before deployment
+
+1. Login to the Aqua Registry with your Aqua credentials:
+   `docker login registry.aquasec.com -u <AQUA_USERNAME> -p <AQUA_PASSWORD>`
+2. Pull the Aqua Scanner image. 
+   ```
+   docker pull registry.aquasec.com/scanner:{version}
+   ```
+3. Push scanner image to ECR.
+
+# Deployment method 1: CloudFormation Management Console
+
+ 1. Click the <b>Launch Stack</b> icon at the top of this README.md file. This will take you to the <b>Create stack</b> function of the AWS CloudFormation Management Console.
+ 2. Ensure that your AWS region is set to where you want to deploy Aqua Scanner.
+ 3. Click "Next".
+ 4. Set or modify any of the parameters (per the explanations provided).
+ 5. Click "Next" to create the stack.
+ 
+# Deployment method 2: Command Line interface
+
+1. Copy the following command:
+```
+
+aws --region us-east-1 cloudformation create-stack --capabilities CAPABILITY_NAMED_IAM --stack-name aqua-scanner --template-body file://aquaScanner.yaml \
+--parameters ParameterKey=AquaServerAddress,ParameterValue=xxxxx \
+ParameterKey=AquaScannerUserName,ParameterValue=xxxxx \
+ParameterKey=AquaScannerPassword,ParameterValue=xxxxx \
+ParameterKey=AquaScannerImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:scanner-x.x\
+ParameterKey=ECSClusterName,ParameterValue=xxxxx
+```
+
+2. Set the parameters as follows:
+```
+
+AquaServerAddress = The Server DNS name or IP address (IP address with port number)
+AquaScannerUserName = The Scanner user name from Aqua server
+AquaScannerPassword = The Scanner user Password
+AquaScannerImage = The ECR path for the Aqua Scanner product image
+ECSClusterName = The existing ECS cluster name
+
+```
+3. Run the AWS create-stack CLI command.
+
+It will deploy Aqua Scanner in your desired cluster and the newly deployed scanner will get add to the existing Aqua server.
 
 
 
