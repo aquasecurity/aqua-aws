@@ -87,31 +87,7 @@ It will typically require up to 20 minutes for your stack to be created and depl
 When completed, you can obtain the DNS name of the Aqua Server UI from the console output, under key name `AquaConsole`.
 
 # Active-Active Deployment
-For Active-Active configuration we need add the below lines or code in the exisitng aquaFargate.yaml file.
-
-Resources-->AquaConsoleTaskDefinition-->Properties-->ContainerDefinitions-->Secrets
-
-```
-- Name: AQUA_PUBSUB_DBPASSWORD
-  ValueFrom: !Ref Secret0
-- Name: AQUA_PUBSUB_DBUSER
-  ValueFrom: !Ref SecretUsername
-```			  
-
-Resources-->AquaConsoleTaskDefinition-->Properties-->ContainerDefinitions-->Environment
-
-```
-- Name: AQUA_PUBSUB_DBSSL
-  Value: require
-- Name: AQUA_PUBSUB_DBNAME
-  Value: pubsub
-- Name: AQUA_PUBSUB_DBHOST
-  Value: !GetAtt
-    - RdsInstance
-    - Endpoint.Address
-- NAME: AQUA_CLUSTER_MODE
-  VALUE: active-active
- ```
+For Active-Active configuration select option yes in activeactive parameter while creating the stack.
 
 # Version upgrade
 
