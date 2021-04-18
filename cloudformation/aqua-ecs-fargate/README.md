@@ -63,6 +63,7 @@ ParameterKey=VpcId,ParameterValue=vpc-xxxx \
 ParameterKey=LbSubnets,ParameterValue=\"subnet-xxxx,subnet-xxxx\" \
 ParameterKey=LBScheme,ParameterValue=\"internet-facing\" 
 ParameterKey=SSLCert,ParameterValue=\"arn:aws:acm:us-east-1:1234567890:certificate/xxxxxxxxxxxx\"
+ParameterKey=ActiveActive,ParameterValue=\"fasle\"
 ```  
 2. Set the parameters as follows:
 ```
@@ -80,6 +81,7 @@ VpcId = The VpcId to deploy into
 LbSubnets = Select external subnets if you need Internet access
 LBScheme = Select Internet-facing if you need to access Aqua console from external.
 SSLCert = Enter the SSL certificate ARN from Amazon Certificate Manager
+ActiveActive = Active Active configuration for console.
 ```
 3. Run the AWS create-stack CLI command.
 
