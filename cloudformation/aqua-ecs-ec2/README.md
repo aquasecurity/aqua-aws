@@ -70,6 +70,7 @@ ParameterKey=RdsStorage,ParameterValue=50 \
 ParameterKey=MultiAzDatabase,ParameterValue=false \
 ParameterKey=AuditRdsInstanceClass,ParameterValue=db.t3.medium \ 
 ParameterKey=EcsSecurityGroupId,ParameterValue=XXXXX \ 
+ParameterKey=ActiveActive,ParameterValue=XXXXX \ 
 ```  
 2. Set the parameters as follows:
 ```
@@ -90,6 +91,7 @@ RdsStorage = Set the size (GB) of the RDS DB instance
 MultiAzDatabase = Set to true to enable deployment in multiple Availability Zones
 AuditRdsInstanceClass = Set the RDS Instance Class for Audit DB
 EcsSecurityGroupId = Select the security group ID which is same as ECS cluster security group ID or ECS Cluster Instances security group ID.
+ActiveActive = Set to true for aqua console active active configuration 
 ```
 3. Run the AWS create-stack CLI command.
 
@@ -98,31 +100,7 @@ When completed, you can obtain the DNS name of the Aqua Server UI from the conso
 
 ## Active-active Server deployment
 
-For an active-active Server configuration you need add the following lines or code to the exisitng aquaEcs.yaml file:
-
-Resources-->AquaConsoleTaskDefinition-->Properties-->ContainerDefinitions-->Secrets
-
-```
-- Name: AQUA_PUBSUB_DBPASSWORD
-  ValueFrom: !Ref Secret0
-- Name: AQUA_PUBSUB_DBUSER
-  ValueFrom: !Ref SecretUsername
-```			  
-
-Resources-->AquaConsoleTaskDefinition-->Properties-->ContainerDefinitions-->Environment
-
-```
-- Name: AQUA_PUBSUB_DBSSL
-  Value: require
-- Name: AQUA_PUBSUB_DBNAME
-  Value: pubsub
-- Name: AQUA_PUBSUB_DBHOST
-  Value: !GetAtt
-    - RdsInstance
-    - Endpoint.Address
-- NAME: AQUA_CLUSTER_MODE
-  VALUE: active-active
- ```
+For an active-active Server configuration select the ActiveActive parameter value as true.
 
 # Version upgrade
 
