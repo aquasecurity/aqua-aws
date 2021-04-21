@@ -114,6 +114,12 @@ Parameters:
       - db.r5.8xlarge
       - db.r5.16xlarge
     ConstraintDescription: Must be a valid EC2 RDS instance type
+  AuditRDS:
+    Description: Select Yes to create a separate RDS instance for Audit
+    Default: 'No'
+    Type: String
+    AllowedValues: ['Yes', 'No']
+
   AuditRdsInstanceClass:
     Description: ''
     Type: String
@@ -173,6 +179,8 @@ Parameters:
 Conditions:
   CreateActiveActive: !Equals [ !Ref ActiveActive, true ]
   NotCreateActiveActive: !Equals [ !Ref ActiveActive, false ]
+  CreateAuditrds: !Equals [!Ref AuditRDS, 'Yes']
+  ReplaceAuditrds: !Equals [!Ref AuditRDS, 'No']  
 Resources:
   # ECS Cluster
   ECSCluster:
@@ -271,9 +279,7 @@ Resources:
             - Name: SCALOCK_AUDIT_DBNAME
               Value: slk_audit
             - Name: SCALOCK_AUDIT_DBHOST
-              Value: !GetAtt
-                - AuditRdsInstance
-                - Endpoint.Address
+              Value: !If [CreateAuditrds, !GetAtt AuditRdsInstance.Endpoint.Address, !GetAtt RdsInstance.Endpoint.Address]
       TaskRoleArn: !Ref AquaEcsTaskRole
   AquaConsoleService:
     Type: 'AWS::ECS::Service'
@@ -394,9 +400,7 @@ Resources:
             - Name: SCALOCK_AUDIT_DBNAME
               Value: slk_audit
             - Name: SCALOCK_AUDIT_DBHOST
-              Value: !GetAtt
-                - AuditRdsInstance
-                - Endpoint.Address
+              Value: !If [CreateAuditrds, !GetAtt AuditRdsInstance.Endpoint.Address, !GetAtt RdsInstance.Endpoint.Address]
             - Name: AQUA_PUBSUB_DBSSL
               Value: require
             - Name: AQUA_PUBSUB_DBNAME
@@ -657,9 +661,7 @@ Resources:
             - Name: SCALOCK_AUDIT_DBNAME
               Value: slk_audit
             - Name: SCALOCK_AUDIT_DBHOST
-              Value: !GetAtt
-                - AuditRdsInstance
-                - Endpoint.Address
+              Value: !If [CreateAuditrds, !GetAtt AuditRdsInstance.Endpoint.Address, !GetAtt RdsInstance.Endpoint.Address]
             - Name: AQUA_CONSOLE_SECURE_ADDRESS
               Value: !Join
                 - ''
@@ -920,6 +922,7 @@ Resources:
       StorageEncrypted: True
       #KmsKeyId: !GetAtt KMSKeyForDB.Arn
   AuditRdsInstance:
+    Condition: CreateAuditrds
     Type: 'AWS::RDS::DBInstance'
     DependsOn:
       - RdsSecurityGroup
@@ -1016,6 +1019,7 @@ Outputs:
     Export :
       Name : Aqua60DBInstanceID
   AquaAuditDBInstanceIdentifier:
+    Condition: CreateAuditrds
     Description : Aqua audit DB Instance Identifier
     Value : !Ref AuditRdsInstance
     Export :
