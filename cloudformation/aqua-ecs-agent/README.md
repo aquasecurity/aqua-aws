@@ -14,3 +14,4 @@ ParameterKey=aquaToken,ParameterValue=xxxx-xxxx-xxxx-xxxx-xxxx \
 ParameterKey=aquaAgentImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:aquasec-agent-{version} \
 ParameterKey=aquaGatewayAddress,ParameterValue=host:3622
 ```
+d
