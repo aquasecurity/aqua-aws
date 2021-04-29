@@ -177,8 +177,8 @@ Parameters:
       - 'false'
 
 Conditions:
-  CreateActiveActive: !Equals [ !Ref ActiveActive, true ]
-  NotCreateActiveActive: !Equals [ !Ref ActiveActive, false ]
+  CreateActiveActive: !Equals [ !Ref ActiveActive, 'true' ]
+  NotCreateActiveActive: !Equals [ !Ref ActiveActive, 'false' ]
   CreateAuditrds: !Equals [!Ref AuditRDS, 'Yes']
   ReplaceAuditrds: !Equals [!Ref AuditRDS, 'No']  
 Resources:
@@ -228,10 +228,10 @@ Resources:
             - - !Ref ECSCluster
               - aqua-console
           Image: !Ref AquaServerImage
-          ulimits:
-            - name: nofile
-              softLimit: '1048576'
-              hardLimit: '1048576'
+          Ulimits:
+            - Name: nofile
+              SoftLimit: '1048576'
+              HardLimit: '1048576'
           PortMappings:
             - ContainerPort: '8080'
               HostPort: '8080'
