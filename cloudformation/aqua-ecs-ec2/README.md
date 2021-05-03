@@ -23,6 +23,7 @@ A CloudFormation template is used to deploy Aqua Enterprise. This can be done ei
 
  - An ECS cluster with at least 2 instances registered
  - A VPC with at least 2 subnets
+ - A certificate via AWS Certificate Manager
  - From Aqua Security: your Aqua credentials (username and password) and Enterprise License Token
 
 ## Before deployment

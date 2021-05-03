@@ -19,7 +19,8 @@ A CloudFormation template is used to deploy Aqua CSP. This can be done either wi
 
 # Requirements
  
- - A VPC with at least 2 subnets 
+ - A VPC with at least 2 subnets
+ - A certificate via AWS Certificate Manager
  - From Aqua Security: your Aqua credentials (username and password) and CSP License Token
 
 # Before deployment
