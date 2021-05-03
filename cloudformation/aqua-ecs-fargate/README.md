@@ -1,4 +1,4 @@
-[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/aquaFargate.yaml)
+[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/6.2/aquaFargate.yaml)
 
 # Description
 
@@ -19,7 +19,8 @@ A CloudFormation template is used to deploy Aqua CSP. This can be done either wi
 
 # Requirements
  
- - A VPC with at least 2 subnets 
+ - A VPC with at least 2 subnets
+ - A certificate via AWS Certificate Manager
  - From Aqua Security: your Aqua credentials (username and password) and CSP License Token
 
 # Before deployment
