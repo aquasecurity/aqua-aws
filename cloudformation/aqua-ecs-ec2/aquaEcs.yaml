@@ -308,31 +308,32 @@ Resources:
       - AquaConsoleGrpcListener
     Properties:
       Cluster: !Ref ECSClusterName
+      LaunchType: EC2
       ServiceName: !Join 
         - '-'
         - - !Ref ECSClusterName
           - aqua-console
-      DesiredCount: '1'
+      DesiredCount: 1
       PlacementStrategies:
         - Type: spread
           Field: 'attribute:ecs.availability-zone'
         - Type: spread
           Field: instanceId
       DeploymentConfiguration:
-        MaximumPercent: '200'
-        MinimumHealthyPercent: '100'
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
       LoadBalancers:
         - ContainerName: !Join 
             - '-'
             - - !Ref ECSClusterName
               - aqua-console
-          ContainerPort: '8080'
+          ContainerPort: 8080
           TargetGroupArn: !Ref AquaConsoleTargetGroup
         - ContainerName: !Join 
             - '-'
             - - !Ref ECSClusterName
               - aqua-console
-          ContainerPort: '8443'
+          ContainerPort: 8443
           TargetGroupArn: !Ref AquaConsoleGrpcTargetGroup
       TaskDefinition: !Ref AquaConsoleTaskDefinition
   AquaConsoleTaskDefinitionActiveActive:
@@ -429,10 +430,10 @@ Resources:
               Value: pubsub
             - Name: AQUA_PUBSUB_DBHOST
               Value: !GetAtt
-                    - RdsInstance
-                    - Endpoint.Address
-            - NAME: AQUA_CLUSTER_MODE
-              VALUE: active-active
+                - RdsInstance
+                - Endpoint.Address
+            - Name: AQUA_CLUSTER_MODE
+              Value: active-active
       NetworkMode: bridge
       TaskRoleArn: !Ref AquaEcsTaskRole
       ExecutionRoleArn: !Ref AquaEcsTaskRole
@@ -445,31 +446,32 @@ Resources:
       - AquaConsoleGrpcListener
     Properties:
       Cluster: !Ref ECSClusterName
+      LaunchType: EC2
       ServiceName: !Join 
         - '-'
         - - !Ref ECSClusterName
           - aqua-console
-      DesiredCount: '1'
+      DesiredCount: 1
       PlacementStrategies:
         - Type: spread
           Field: 'attribute:ecs.availability-zone'
         - Type: spread
           Field: instanceId
       DeploymentConfiguration:
-        MaximumPercent: '200'
-        MinimumHealthyPercent: '100'
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
       LoadBalancers:
         - ContainerName: !Join 
             - '-'
             - - !Ref ECSClusterName
               - aqua-console
-          ContainerPort: '8080'
+          ContainerPort: 8080
           TargetGroupArn: !Ref AquaConsoleTargetGroup
         - ContainerName: !Join 
             - '-'
             - - !Ref ECSClusterName
               - aqua-console
-          ContainerPort: '8443'
+          ContainerPort: 8443
           TargetGroupArn: !Ref AquaConsoleGrpcTargetGroup
       TaskDefinition: !Ref AquaConsoleTaskDefinitionActiveActive
   AquaConsoleListener:
@@ -600,7 +602,7 @@ Resources:
       TaskRoleArn: !Ref AquaEcsTaskRole
       ExecutionRoleArn: !Ref AquaEcsTaskRole
       RequiresCompatibilities:
-        - EC2
+        - EC2  
       ContainerDefinitions:
         - Name: !Join 
             - '-'
@@ -676,22 +678,22 @@ Resources:
         - '-'
         - - !Ref ECSClusterName
           - aqua-gateway
-      DesiredCount: '2'
+      DesiredCount: 2
       PlacementStrategies:
         - Type: spread
           Field: 'attribute:ecs.availability-zone'
         - Type: spread
           Field: instanceId
       DeploymentConfiguration:
-        MaximumPercent: '200'
-        MinimumHealthyPercent: '100'
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
       LoadBalancers:
         - ContainerName: !Join 
             - '-'
             - - !Ref ECSClusterName
               - aqua-gateway
-          ContainerPort: '3622'
-          TargetGroupArn: !Ref AquaGatewayTargetGroup
+          ContainerPort: 3622
+          TargetGroupArn: !Ref AquaGatewayTargetGroup     
       TaskDefinition: !Ref AquaGatewayTaskDefinition
   AquaEnforcerTaskDefinition:
     Type: 'AWS::ECS::TaskDefinition'
