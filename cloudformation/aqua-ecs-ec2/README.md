@@ -102,6 +102,10 @@ When completed, you can obtain the DNS name of the Aqua Server UI from the conso
 
 For an active-active Server configuration select the ActiveActive parameter value as true.
 
+## Split DB deployment
+
+Having a seprate DB for audit events is an optional parameter. Select Yes for AuditRDS parameter if you would like to create a separate RDS instance otherwise select No to use single RDS instance both. Default value for AuditRDS (or split DB) is No. 
+
 # Version upgrade
 
 To upgrade your Aqua Enterprise version, modify the existing stack with the new Aqua product images.
