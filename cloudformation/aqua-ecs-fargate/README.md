@@ -92,9 +92,13 @@ When completed, you can obtain the DNS name of the Aqua Server UI from the conso
 # Active-Active Deployment
 For Active-Active configuration select option yes in activeactive parameter while creating the stack.
 
-## Split DB deployment
+# Split DB deployment
 
 Having a seprate DB for audit events is an optional parameter. Select "Yes" for AuditRDS parameter if you would like to create a separate RDS instance otherwise select "No" to use single RDS instance for both. Default value for AuditRDS (or split DB) is No. 
+
+# External DB (Managed DB) 
+
+If you have an existing PostgreSQL database and want to use the same for aqua deployment, use the cloudformation template aquaEcs-external.yaml.
 
 # Version upgrade
 
