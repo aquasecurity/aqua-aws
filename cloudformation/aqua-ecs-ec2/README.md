@@ -1,4 +1,4 @@
-[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/5.3/aquaEcs.yaml)
+[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/6.2/aquaEcs.yaml)
 
 # Description
 
@@ -23,6 +23,7 @@ A CloudFormation template is used to deploy Aqua Enterprise. This can be done ei
 
  - An ECS cluster with at least 2 instances registered
  - A VPC with at least 2 subnets
+ - A certificate via AWS Certificate Manager
  - From Aqua Security: your Aqua credentials (username and password) and Enterprise License Token
 
 ## Before deployment
@@ -108,7 +109,7 @@ To upgrade your Aqua Enterprise version, modify the existing stack with the new 
 
 # Enforcer-only deployment
 
-[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/5.3/aquaEnforcer.yaml)
+[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/6.2/aquaEnforcer.yaml)
 
 ## Description
 
@@ -166,7 +167,7 @@ It will deploy Aqua Enforcer in your desired cluster and the newly deployed enfo
 
 # Scanner-only Deployment. 
 
-[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/5.3/aquaScanner.yaml)
+[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/6.2/aquaScanner.yaml)
 
 ## Description
 
