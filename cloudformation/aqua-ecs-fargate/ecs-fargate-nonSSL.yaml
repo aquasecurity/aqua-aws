@@ -160,6 +160,7 @@ Parameters:
       - 'true'
       - 'false'
     ConstraintDescription: Must be either true or false.
+    
   ClusterName:
     Description: Name of ecs cluster to be created
     Type: String
