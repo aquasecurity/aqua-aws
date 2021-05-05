@@ -94,7 +94,7 @@ For Active-Active configuration select option yes in activeactive parameter whil
 
 ## Split DB deployment
 
-Having a seprate DB for audit events is an optional parameter. Select Yes for AuditRDS parameter if you would like to create a separate RDS instance otherwise select No to use single RDS instance both. Default value for AuditRDS (or split DB) is No. 
+Having a seprate DB for audit events is an optional parameter. Select "Yes" for AuditRDS parameter if you would like to create a separate RDS instance otherwise select "No" to use single RDS instance for both. Default value for AuditRDS (or split DB) is No. 
 
 # Version upgrade
 
