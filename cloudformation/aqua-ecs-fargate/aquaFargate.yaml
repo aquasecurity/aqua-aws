@@ -409,8 +409,8 @@ Resources:
               Value: !GetAtt
                     - RdsInstance
                     - Endpoint.Address
-            - NAME: AQUA_CLUSTER_MODE
-              VALUE: active-active
+            - Name: AQUA_CLUSTER_MODE
+              Value: active-active
       TaskRoleArn: !Ref AquaEcsTaskRole
   AquaConsoleServiceActiveActive:
     Type: 'AWS::ECS::Service'
