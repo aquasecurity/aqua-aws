@@ -98,7 +98,7 @@ Having a seprate DB for audit events is an optional parameter. Select "Yes" for 
 
 # External DB (Managed DB) 
 
-If you have an existing PostgreSQL database and want to use the same for aqua deployment, use the cloudformation template aquaEcs-external.yaml.
+If you have an existing PostgreSQL database and want to use the same for aqua deployment, use the cloudformation template aquaFargate-external.yaml.
 
 # Version upgrade
 
