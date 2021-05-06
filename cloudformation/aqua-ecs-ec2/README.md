@@ -32,9 +32,9 @@ A CloudFormation template is used to deploy Aqua Enterprise. This can be done ei
    `docker login registry.aquasec.com -u <AQUA_USERNAME> -p <AQUA_PASSWORD>`
 2. Pull the Aqua product images for the Server (Console), Gateway and Aqua Enforcer with these commands. 
    ```
-   docker pull registry.aquasec.com/console:{version} 
-   docker pull registry.aquasec.com/gateway:{version}
-   docker pull registry.aquasec.com/enforcer:{version}
+   docker pull registry.aquasec.com/console:6.2.preview6 
+   docker pull registry.aquasec.com/gateway:6.2.preview6
+   docker pull registry.aquasec.com/enforcer:6.2.preview6
    ```
 3. Push all of the images to ECR.
 
@@ -128,7 +128,7 @@ The Aqua Server and Gateway are deployed on a given ECS EC2 cluster. In multi-cl
    `docker login registry.aquasec.com -u <AQUA_USERNAME> -p <AQUA_PASSWORD>`
 2. Pull the Aqua Enforcer image. 
    ```
-   docker pull registry.aquasec.com/enforcer:{version}
+   docker pull registry.aquasec.com/enforcer:6.2.preview6
    ```
 3. Push enforcer image to ECR.
 
@@ -186,7 +186,7 @@ Requirements
    `docker login registry.aquasec.com -u <AQUA_USERNAME> -p <AQUA_PASSWORD>`
 2. Pull the Aqua Scanner image. 
    ```
-   docker pull registry.aquasec.com/scanner:{version}
+   docker pull registry.aquasec.com/scanner:6.2.preview6
    ```
 3. Push scanner image to ECR.
 
