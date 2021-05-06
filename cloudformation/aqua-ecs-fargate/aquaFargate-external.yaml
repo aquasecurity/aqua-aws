@@ -12,6 +12,7 @@ Metadata:
           - VpcCidr
           - EcsInstanceSubnets
           - LbSubnets
+          - SSLCert
           - LBScheme
       - Label:
           default: Aqua Security Configuration
@@ -21,12 +22,15 @@ Metadata:
           - AquaGatewayImage
           - ActiveActive
       - Label:
-          default: 'RDS Configuration: RDS Configuration'
+          default: Aqua Manage DB Configuration
         Parameters:
-          - RdsInstanceName
-          - RdsInstanceClass
-          - RdsStorage
-          - MultiAzDatabase
+          - AquaDBInstanceEndPointURL
+          - AquaDBUserName
+          - AquaDBPassword
+          - AuditRDS
+          - AuditDBInstanceEndPointURL
+          - AuditDBUserName  
+          - AuditDBPassword    
     ParameterLabels:
       VpcId:
         default: VPC ID
@@ -40,20 +44,10 @@ Metadata:
         default: Aqua LB Scheme
       AquaConsoleAccess:
         default: Web Console Source
-      RdsInstanceName:
-        default: RDS instance name
-      RdsInstanceClass:
-        default: RDS instance type
-      RdsStorage:
-        default: RDS storage size (GB)
-      MultiAzDatabase:
-        default: Enable Multi-AZ RDS
       ClusterName:
         default: Name of ecs cluster
-        Type: String
-        MinLength: '5'
-        MaxLength: '12'
-        AllowedPattern: '[a-z0-9]*'
+      SSLCert:
+        default: SSL cert ARN
 Parameters:
   AquaServerImage:
     Type: String
@@ -91,78 +85,47 @@ Parameters:
     MaxLength: '18'
     AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
     ConstraintDescription: Must be a valid IP CIDR range of the form x.x.x.x/x
-  RdsInstanceClass:
-    Description: ''
+  
+  AquaDBInstanceEndPointURL:
+    Description: Enter Endpoint URL of Aqua DB
     Type: String
-    Default: db.t3.medium
-    AllowedValues:
-      - db.t3.micro
-      - db.t3.small
-      - db.t3.medium
-      - db.t3.large
-      - db.t3.xlarge
-      - db.t3.2xlarge
-      - db.m5.large
-      - db.m5.xlarge
-      - db.m5.2xlarge
-      - db.m5.4xlarge
-      - db.m5.10xlarge
-      - db.m5.16xlarge
-      - db.r5.large
-      - db.r5.xlarge
-      - db.r5.2xlarge
-      - db.r5.4xlarge
-      - db.r5.8xlarge
-      - db.r5.16xlarge
-    ConstraintDescription: Must be a valid EC2 RDS instance type
+  
+  AquaDBUserName:
+    Description: Enter Aqua DB User name
+    Type: String
+
+  AquaDBPassword:
+    NoEcho: true
+    Description: Enter Aqua DB password
+    Type: String  
+      
   AuditRDS:
-    Description: Select Yes to create a separate RDS instance for Audit
+    Description: Select Yes to create a separate Manage RDS instance for Audit
     Default: 'No'
     Type: String
     AllowedValues: ['Yes', 'No']
 
-  AuditRdsInstanceClass:
-    Description: ''
+  AuditDBInstanceEndPointURL:
+    Description: Enter Endpoint URL of Audit DB
     Type: String
-    Default: db.t3.medium
-    AllowedValues:
-      - db.t3.micro
-      - db.t3.small
-      - db.t3.medium
-      - db.t3.large
-      - db.t3.xlarge
-      - db.t3.2xlarge
-      - db.m5.large
-      - db.m5.xlarge
-      - db.m5.2xlarge
-      - db.m5.4xlarge
-      - db.m5.10xlarge
-      - db.m5.16xlarge
-      - db.r5.large
-      - db.r5.xlarge
-      - db.r5.2xlarge
-      - db.r5.4xlarge
-      - db.r5.8xlarge
-      - db.r5.16xlarge
-    ConstraintDescription: Must be a valid EC2 RDS instance type
-  RdsStorage:
-    Default: '50'
-    Description: 'Disk space for RDS Database'
-    Type: Number
-    MinValue: '50'
-    MaxValue: '65536'
-    ConstraintDescription: Must be set to between 40 and 1024GB.
-  MultiAzDatabase:
-    Default: 'true'
-    Description: Multi-AZ RDS Deployment for High Availability. Prefer true for Enterprise Deployment
+  
+  AuditDBUserName:
+    Description: Enter Audit DB User name
     Type: String
-    AllowedValues:
-      - 'true'
-      - 'false'
-    ConstraintDescription: Must be either true or false.
-    
+
+  AuditDBPassword:
+    NoEcho: true
+    Description: Enter Audit DB password
+    Type: String
+
   ClusterName:
     Description: Name of ecs cluster to be created
+    Type: String
+    MinLength: '5'
+    MaxLength: '12'
+    AllowedPattern: '[a-z0-9]*'
+  SSLCert:
+    Description: ARN of the SSL cert to be used with console web UI LB
     Type: String
   ActiveActive: 
     Description: Active Active configuration for aqua console 
@@ -171,14 +134,12 @@ Parameters:
     AllowedValues:
       - 'true'
       - 'false'
-      
+
 Conditions:
   CreateActiveActive: !Equals [ !Ref ActiveActive, 'true' ]
   NotCreateActiveActive: !Equals [ !Ref ActiveActive, 'false' ]
   CreateAuditrds: !Equals [!Ref AuditRDS, 'Yes']
-  ReplaceAuditrds: !Equals [!Ref AuditRDS, 'No']
-  
-  
+  ReplaceAuditrds: !Equals [!Ref AuditRDS, 'No']  
 Resources:
   # ECS Cluster
   ECSCluster:
@@ -204,11 +165,10 @@ Resources:
     Type: 'AWS::ECS::TaskDefinition'
     Condition: NotCreateActiveActive
     DependsOn:
+      - SecretU
+      - SecretP
       - AquaEcsTaskRole
-      - RdsInstance
       - AquaConsoleLogs
-      - Secret0
-      - SecretUsername
     Properties:
       Family: !Join
         - '-'
@@ -246,13 +206,13 @@ Resources:
               awslogs-stream-prefix: aquaConsole
           Secrets:
             - Name: SCALOCK_DBPASSWORD
-              ValueFrom: !Ref Secret0
+              ValueFrom: !Ref SecretP
             - Name: SCALOCK_AUDIT_DBPASSWORD
-              ValueFrom: !Ref Secret0
+              ValueFrom: !If [CreateAuditrds, !Ref SecretAuditP, !Ref SecretP]
             - Name: SCALOCK_DBUSER
-              ValueFrom: !Ref SecretUsername
+              ValueFrom: !Ref SecretU
             - Name: SCALOCK_AUDIT_DBUSER
-              ValueFrom: !Ref SecretUsername
+              ValueFrom: !If [CreateAuditrds, !Ref SecretAuditU, !Ref SecretU]
           Environment:
             - Name: SCALOCK_LOG_LEVEL
               Value: DEBUG
@@ -271,13 +231,11 @@ Resources:
                 - AquaNlb
                 - DNSName
             - Name: SCALOCK_DBHOST
-              Value: !GetAtt
-                - RdsInstance
-                - Endpoint.Address
+              Value: !Ref AquaDBInstanceEndPointURL
             - Name: SCALOCK_AUDIT_DBNAME
               Value: slk_audit
             - Name: SCALOCK_AUDIT_DBHOST
-              Value: !If [CreateAuditrds, !GetAtt AuditRdsInstance.Endpoint.Address, !GetAtt RdsInstance.Endpoint.Address]
+              Value: !If [CreateAuditrds, !Ref AuditDBInstanceEndPointURL, !Ref AquaDBInstanceEndPointURL]
       TaskRoleArn: !Ref AquaEcsTaskRole
   AquaConsoleService:
     Type: 'AWS::ECS::Service'
@@ -321,11 +279,10 @@ Resources:
     Type: 'AWS::ECS::TaskDefinition'
     Condition: CreateActiveActive
     DependsOn:
+      - SecretU
+      - SecretP
       - AquaEcsTaskRole
-      - RdsInstance
       - AquaConsoleLogs
-      - Secret0
-      - SecretUsername
     Properties:
       Family: !Join
         - '-'
@@ -363,17 +320,17 @@ Resources:
               awslogs-stream-prefix: aquaConsole
           Secrets:
             - Name: SCALOCK_DBPASSWORD
-              ValueFrom: !Ref Secret0
+              ValueFrom: !Ref SecretP
             - Name: SCALOCK_AUDIT_DBPASSWORD
-              ValueFrom: !Ref Secret0
+              ValueFrom: !If [CreateAuditrds, !Ref SecretAuditP, !Ref SecretP]
             - Name: SCALOCK_DBUSER
-              ValueFrom: !Ref SecretUsername
+              ValueFrom: !Ref SecretU
             - Name: SCALOCK_AUDIT_DBUSER
-              ValueFrom: !Ref SecretUsername
+              ValueFrom: !If [CreateAuditrds, !Ref SecretAuditU, !Ref SecretU]
             - Name: AQUA_PUBSUB_DBPASSWORD
-              ValueFrom: !Ref Secret0
+              ValueFrom: !Ref SecretP
             - Name: AQUA_PUBSUB_DBUSER
-              ValueFrom: !Ref SecretUsername
+              ValueFrom: !Ref SecretU
           Environment:
             - Name: SCALOCK_LOG_LEVEL
               Value: DEBUG
@@ -392,23 +349,19 @@ Resources:
                 - AquaNlb
                 - DNSName
             - Name: SCALOCK_DBHOST
-              Value: !GetAtt
-                - RdsInstance
-                - Endpoint.Address
+              Value: !Ref AquaDBInstanceEndPointURL
             - Name: SCALOCK_AUDIT_DBNAME
               Value: slk_audit
             - Name: SCALOCK_AUDIT_DBHOST
-              Value: !If [CreateAuditrds, !GetAtt AuditRdsInstance.Endpoint.Address, !GetAtt RdsInstance.Endpoint.Address]
+              Value: !If [CreateAuditrds, !Ref AuditDBInstanceEndPointURL, !Ref AquaDBInstanceEndPointURL]
             - Name: AQUA_PUBSUB_DBSSL
               Value: require
             - Name: AQUA_PUBSUB_DBNAME
               Value: pubsub
             - Name: AQUA_PUBSUB_DBHOST
-              Value: !GetAtt
-                    - RdsInstance
-                    - Endpoint.Address
-            - NAME: AQUA_CLUSTER_MODE
-              VALUE: active-active
+              Value: !Ref AquaDBInstanceEndPointURL
+            - Name: AQUA_CLUSTER_MODE
+              Value: active-active
       TaskRoleArn: !Ref AquaEcsTaskRole
   AquaConsoleServiceActiveActive:
     Type: 'AWS::ECS::Service'
@@ -457,8 +410,11 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref AquaConsoleTargetGroup
       LoadBalancerArn: !Ref AquaConsoleLB
-      Port: '80'
-      Protocol: HTTP
+      Port: '443'
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref SSLCert
+      SslPolicy: ELBSecurityPolicy-FS-1-2-Res-2019-08
   AquaConsoleTargetGroup:
     Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
     DependsOn:
@@ -586,10 +542,10 @@ Resources:
   AquaGatewayTaskDefinition:
     Type: 'AWS::ECS::TaskDefinition'
     DependsOn:
+      - SecretU
+      - SecretP
       - AquaEcsTaskRole
-      - RdsInstance
       - AquaGatewayLogs
-      - Secret0
     Properties:
       Family: !Join
         - '-'
@@ -631,13 +587,13 @@ Resources:
               awslogs-stream-prefix: aquaGateway
           Secrets:
             - Name: SCALOCK_DBPASSWORD
-              ValueFrom: !Ref Secret0
+              ValueFrom: !Ref SecretP
             - Name: SCALOCK_AUDIT_DBPASSWORD
-              ValueFrom: !Ref Secret0
+              ValueFrom: !If [CreateAuditrds, !Ref SecretAuditP, !Ref SecretP]
             - Name: SCALOCK_DBUSER
-              ValueFrom: !Ref SecretUsername
+              ValueFrom: !Ref SecretU
             - Name: SCALOCK_AUDIT_DBUSER
-              ValueFrom: !Ref SecretUsername
+              ValueFrom: !If [CreateAuditrds, !Ref SecretAuditU, !Ref SecretU]
           Environment:
             - Name: SCALOCK_LOG_LEVEL
               Value: DEBUG
@@ -650,13 +606,11 @@ Resources:
             - Name: SCALOCK_DBNAME
               Value: scalock
             - Name: SCALOCK_DBHOST
-              Value: !GetAtt
-                - RdsInstance
-                - Endpoint.Address
+              Value: !Ref AquaDBInstanceEndPointURL
             - Name: SCALOCK_AUDIT_DBNAME
               Value: slk_audit
             - Name: SCALOCK_AUDIT_DBHOST
-              Value: !If [CreateAuditrds, !GetAtt AuditRdsInstance.Endpoint.Address, !GetAtt RdsInstance.Endpoint.Address]
+              Value: !If [CreateAuditrds, !Ref AuditDBInstanceEndPointURL, !Ref AquaDBInstanceEndPointURL]
             - Name: AQUA_CONSOLE_SECURE_ADDRESS
               Value: !Join
                 - ''
@@ -713,8 +667,8 @@ Resources:
       VpcId: !Ref VpcId
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: '80'
-          ToPort: '80'
+          FromPort: '8080'
+          ToPort: '8080'
           CidrIp: !Ref AquaConsoleAccess
         - IpProtocol: tcp
           FromPort: '443'
@@ -806,10 +760,8 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - 'secretsmanager:GetSecretValue'
-                Resource:
-                  - !Ref Secret0
-                  - !Ref SecretUsername
+                  - 'secretsmanager:*'
+                Resource: '*'
         - PolicyName: !Join
             - '-'
             - - !Ref ECSCluster
@@ -851,6 +803,7 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       AccessControl: Private
+      #BucketName: !Sub '${AWS::StackName}-lb-accesslogs'
       BucketName: !Sub '${ClusterName}-lb-accesslogs'
       BucketEncryption:
         ServerSideEncryptionConfiguration:
@@ -891,83 +844,9 @@ Resources:
             StringEquals:
               s3:x-amz-acl: bucket-owner-full-control
 
-  RdsInstance:
-    Type: 'AWS::RDS::DBInstance'
-    DependsOn:
-      - RdsSecurityGroup
-      - RdsInstanceSubnetGroup
-    Properties:
-      AllocatedStorage: !Ref RdsStorage
-      AutoMinorVersionUpgrade: 'false'
-      VPCSecurityGroups:
-        - !Ref RdsSecurityGroup
-      BackupRetentionPeriod: '7'
-      DBInstanceIdentifier: !Join ['-', ['aquasec-db', !Ref ECSCluster]]
-      DBInstanceClass: !Ref RdsInstanceClass
-      DBSubnetGroupName: !Ref RdsInstanceSubnetGroup
-      DeleteAutomatedBackups: False
-      DeletionProtection: False
-      Engine: postgres
-      EngineVersion: 11.9
-      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref SecretUsername, ':SecretString}}' ]]
-      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref Secret0, ':SecretString}}' ]]
-      MultiAZ: !Ref MultiAzDatabase
-      StorageType: gp2
-      StorageEncrypted: True
-      #KmsKeyId: !GetAtt KMSKeyForDB.Arn
-  AuditRdsInstance:
-    Condition: CreateAuditrds
-    Type: 'AWS::RDS::DBInstance'
-    DependsOn:
-      - RdsSecurityGroup
-      - RdsInstanceSubnetGroup
-    Properties:
-      AllocatedStorage: !Ref RdsStorage
-      AutoMinorVersionUpgrade: 'false'
-      VPCSecurityGroups:
-        - !Ref RdsSecurityGroup
-      BackupRetentionPeriod: '7'
-      DBInstanceIdentifier: !Join ['-', ['aquasec-audit-db', !Ref ECSCluster]]
-      DBInstanceClass: !Ref AuditRdsInstanceClass
-      DBSubnetGroupName: !Ref RdsInstanceSubnetGroup
-      DeleteAutomatedBackups: False
-      DeletionProtection: False
-      Engine: postgres
-      EngineVersion: 11.9
-      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref SecretUsername, ':SecretString}}' ]]
-      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref Secret0, ':SecretString}}' ]]
-      MultiAZ: !Ref MultiAzDatabase
-      StorageType: gp2
-      StorageEncrypted: True
-      #KmsKeyId: !GetAtt KMSKeyForDB.Arn
-  RdsInstanceSubnetGroup:
-    Type: 'AWS::RDS::DBSubnetGroup'
-    Properties:
-      DBSubnetGroupDescription: Source subnet
-      SubnetIds: !Ref EcsInstanceSubnets
-  RdsSecurityGroup:
-    Type: 'AWS::EC2::SecurityGroup'
-    Properties:
-      GroupDescription: Allow access to RDS Instances
-      VpcId: !Ref VpcId
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: '5432'
-          ToPort: '5432'
-          SourceSecurityGroupId: !Ref AquaFargateSecurityGroup
-  #Secrets
-  Secret0:
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Description: Aqua RDS password
-      Name: !Join
-        - '/'
-        - - !Ref ECSCluster
-          - AquaRdsPassword
-      GenerateSecretString:
-        PasswordLength: 16
-        ExcludeCharacters: '"@/\'
-  SecretUsername:
+
+  #mysecrets
+  SecretU:
     Type: AWS::SecretsManager::Secret
     Properties:
       Description: Aqua RDS Username
@@ -975,13 +854,45 @@ Resources:
         - '/'
         - - !Ref ECSCluster
           - AquaRdsUsername
-      SecretString: 'aquaadmin'
+      SecretString: !Ref AquaDBUserName  
+
+  SecretP:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Aqua RDS Password
+      Name: !Join
+        - '/'
+        - - !Ref ECSCluster
+          - AquaRdsPassword
+      SecretString: !Ref AquaDBPassword
+
+  SecretAuditU:
+    Condition: CreateAuditrds
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Audit RDS Username
+      Name: !Join
+        - '/'
+        - - !Ref ECSCluster
+          - AuditRdsUsername
+      SecretString: !Ref AuditDBUserName  
+
+  SecretAuditP:
+    Condition: CreateAuditrds
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Audit RDS Password
+      Name: !Join
+        - '/'
+        - - !Ref ECSCluster
+          - AuditRdsPassword
+      SecretString: !Ref AuditDBPassword    
 Outputs:
   AquaConsole:
     Description: URL to access Aqua Security Console
     Value: !Join
       - ''
-      - - 'http://'
+      - - 'https://'
         - !GetAtt
           - AquaConsoleLB
           - DNSName
@@ -1009,12 +920,12 @@ Outputs:
     Value: !Ref AquaEcsTaskRole
   AquaDBInstanceIdentifier:
     Description : Aqua DB Instance Identifier
-    Value : !Ref RdsInstance
+    Value : !Ref AquaDBInstanceEndPointURL
     Export :
       Name : Aqua60DBInstanceID
   AquaAuditDBInstanceIdentifier:
     Condition: CreateAuditrds
     Description : Aqua audit DB Instance Identifier
-    Value : !Ref AuditRdsInstance
+    Value : !Ref AuditDBInstanceEndPointURL
     Export :
       Name : Aqua60AuditDBInstanceID
