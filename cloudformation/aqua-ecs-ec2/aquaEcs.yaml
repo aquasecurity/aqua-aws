@@ -72,7 +72,7 @@ Parameters:
     Type: String
     MinLength: '5'
     MaxLength: '12'
-    AllowedPattern: '[a-z0-9]*'
+    AllowedPattern: '[a-z0-9-_]*'
   EcsSecurityGroupId:
     Type: 'AWS::EC2::SecurityGroup::Id'
     Description: The security group assigned to the ECS cluster or ECS Instances during cluster creation
