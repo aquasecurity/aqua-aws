@@ -214,10 +214,10 @@ Resources:
               - aqua-console
           Image: !Ref AquaServerImage
           Cpu: '1024'
-          ulimits:
-            - name: nofile
-              softLimit: '1048576'
-              hardLimit: '1048576'
+          Ulimits:
+            - Name: nofile
+              SoftLimit: '1048576'
+              HardLimit: '1048576'
           MountPoints:
             - ContainerPath: /var/run/docker.sock
               SourceVolume: docker-socket
@@ -446,10 +446,10 @@ Resources:
             - - !Ref ECSClusterName
               - aqua-gateway
           Image: !Ref AquaGatewayImage
-          ulimits:
-            - name: nofile
-              softLimit: '1048576'
-              hardLimit: '1048576'
+          Ulimits:
+            - Name: nofile
+              SoftLimit: '1048576'
+              HardLimit: '1048576'
           PortMappings:
             - ContainerPort: '3622'
               HostPort: '3622'
