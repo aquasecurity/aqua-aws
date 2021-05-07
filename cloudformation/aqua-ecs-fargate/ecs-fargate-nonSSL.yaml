@@ -49,6 +49,10 @@ Metadata:
         default: Enable Multi-AZ RDS
       ClusterName:
         default: Name of ecs cluster
+        Type: String
+        MinLength: '5'
+        MaxLength: '12'
+        AllowedPattern: '[a-z0-9]*'
 Parameters:
   AquaServerImage:
     Type: String
@@ -695,7 +699,7 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       AccessControl: Private
-      BucketName: !Sub '${AWS::StackName}-lb-accesslogs'
+      BucketName: !Sub '${ClusterName}-lb-accesslogs'
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -828,7 +832,6 @@ Outputs:
         - !GetAtt
           - AquaConsoleLB
           - DNSName
-        - ':8080'
   AquaConsoleGrpcConnection:
     Description: >-
       DNS to server gRPC

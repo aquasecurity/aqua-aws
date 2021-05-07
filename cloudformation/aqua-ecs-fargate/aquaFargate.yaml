@@ -155,6 +155,9 @@ Parameters:
   ClusterName:
     Description: Name of ecs cluster to be created
     Type: String
+    MinLength: '5'
+    MaxLength: '12'
+    AllowedPattern: '[a-z0-9]*'
   SSLCert:
     Description: ARN of the SSL cert to be used with console web UI LB
     Type: String
@@ -704,7 +707,8 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       AccessControl: Private
-      BucketName: !Sub '${AWS::StackName}-lb-accesslogs'
+      #BucketName: !Sub '${AWS::StackName}-lb-accesslogs'
+      BucketName: !Sub '${ClusterName}-lb-accesslogs'
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -833,11 +837,10 @@ Outputs:
     Description: URL to access Aqua Security Console
     Value: !Join
       - ''
-      - - 'http://'
+      - - 'https://'
         - !GetAtt
           - AquaConsoleLB
           - DNSName
-        - ':8080'
   AquaConsoleGrpcConnection:
     Description: >-
       DNS to server gRPC
