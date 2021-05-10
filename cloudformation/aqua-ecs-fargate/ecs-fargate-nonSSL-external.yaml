@@ -45,10 +45,7 @@ Metadata:
         default: Web Console Source
       ClusterName:
         default: Name of ecs cluster
-        Type: String
-        MinLength: '5'
-        MaxLength: '12'
-        AllowedPattern: '[a-z0-9]*'
+        
 Parameters:
   AquaServerImage:
     Type: String
@@ -122,6 +119,11 @@ Parameters:
   ClusterName:
     Description: Name of ecs cluster to be created
     Type: String
+    MinLength: '5'
+    MaxLength: '25'
+    AllowedPattern: '[a-z\p{Punct}0-9]*'
+    
+        
   ActiveActive: 
     Description: Active Active configuration for aqua console 
     Type: String
@@ -138,12 +140,64 @@ Conditions:
 
   
   
-Resources:     
+Resources: 
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: allowLambdaLogging
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "logs:*"
+                Resource: "*"              
+                        
+  RandomStringLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.lambda_handler
+      Timeout: 10
+      Role: !GetAtt "LambdaExecutionRole.Arn"
+      Runtime: python3.6
+      Code:
+        ZipFile: |
+          import cfnresponse
+          from random import choice
+          from string import ascii_lowercase, digits
+          def random_string(length=8, chars=ascii_lowercase + digits):
+            return "".join(choice(chars) for x in range(length))
+          def lambda_handler(event, context):
+            print(f"Data in event: {event}")
+            response_data = {}
+            if event["RequestType"] == "Create":
+              string_length = int(event["ResourceProperties"]["Length"])
+              physicalResourceId = random_string(string_length)
+              response_data = { "RandomString": physicalResourceId }
+            
+            else: # if event["RequestType"] == "Update" or event["RequestType"] == "Delete":
+              physicalResourceId = event["PhysicalResourceId"]
+            cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data, physicalResourceId)
+  SampleString:
+   Type: AWS::CloudFormation::CustomResource
+   Properties:
+     Length: 5
+     ServiceToken: !GetAtt RandomStringLambdaFunction.Arn    
   # ECS Cluster
   ECSCluster:
     Type: AWS::ECS::Cluster
     Properties:
-      ClusterName: !Ref ClusterName
+      ClusterName: !Join ["-", [!Ref ClusterName, !GetAtt SampleString.RandomString]]
   # Aqua Console
   AquaConsoleLB:
     Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
@@ -841,7 +895,7 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       AccessControl: Private
-      BucketName: !Sub '${ClusterName}-lb-accesslogs'
+      BucketName: !Sub '${ECSCluster}-lb-accesslogs'
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -917,10 +971,12 @@ Outputs:
     Description : Aqua DB Instance Identifier
     Value : !Ref AquaDBInstanceEndPointURL
     Export :
-      Name : Aqua60DBInstanceID
+      Name : 
+        'Fn::Sub': '${AWS::StackName}-Aqua60DBInstanceID'
   AquaAuditDBInstanceIdentifier:
     Condition: CreateAuditrds
     Description : Aqua audit DB Instance Identifier
     Value : !Ref AuditDBInstanceEndPointURL
     Export :
-      Name : Aqua60AuditDBInstanceID
+      Name : 
+        'Fn::Sub': '${AWS::StackName}-Aqua60AuditDBInstanceID'
