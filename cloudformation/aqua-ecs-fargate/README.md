@@ -103,7 +103,7 @@ If you have an existing PostgreSQL database and want to use the same for aqua de
 # Microenforcer Deployment 
 
 AWS Fargate is a Container as a Service (CaaS) enviornment and you can deploy aqua microenforcer to provide runtime security to the containers deployed in AWS Fargate. Please refer to the the microenforcer docuemntation for more details. 
-https://docs.aquasec.com/v6.2/docs/microenforcer
+https://docs.aquasec.com/v6.0/docs/microenforcer
 
 # Version upgrade
 
