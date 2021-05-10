@@ -100,6 +100,11 @@ Having a seprate DB for audit events is an optional parameter. Select Yes for Au
 
 If you have an existing PostgreSQL database and want to use the same for aqua deployment, use the cloudformation template aquaFargate-external.yaml.
 
+# Microenforcer Deployment 
+
+AWS Fargate is a Container as a Service (CaaS) enviornment and you can deploy aqua microenforcer to provide runtime security to the containers deployed in AWS Fargate. Please refer to the the microenforcer docuemntation for more details. 
+https://docs.aquasec.com/v6.2/docs/microenforcer
+
 # Version upgrade
 
 To upgrade your Aqua CSP version, modify the existing stack with the new Aqua product images.
