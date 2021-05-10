@@ -32,9 +32,9 @@ A CloudFormation template is used to deploy Aqua Enterprise. This can be done ei
    `docker login registry.aquasec.com -u <AQUA_USERNAME> -p <AQUA_PASSWORD>`
 2. Pull the Aqua product images for the Server (Console), Gateway and Aqua Enforcer with these commands. 
    ```
-   docker pull registry.aquasec.com/console:{version} 
-   docker pull registry.aquasec.com/gateway:{version}
-   docker pull registry.aquasec.com/enforcer:{version}
+   docker pull registry.aquasec.com/console:6.2.preview6 
+   docker pull registry.aquasec.com/gateway:6.2.preview6
+   docker pull registry.aquasec.com/enforcer:6.2.preview6
    ```
 3. Push all of the images to ECR.
 
@@ -107,6 +107,10 @@ For an active-active Server configuration select the ActiveActive parameter valu
 
 Having a seprate DB for audit events is an optional parameter. Select Yes for AuditRDS parameter if you would like to create a separate RDS instance otherwise select No to use single RDS instance both. Default value for AuditRDS (or split DB) is No. 
 
+## External DB (Managed DB) 
+
+If you have an existing PostgreSQL database and want to use the same for aqua deployment, use the cloudformation template aquaFargate-external.yaml.
+
 # Version upgrade
 
 To upgrade your Aqua Enterprise version, modify the existing stack with the new Aqua product images.
@@ -132,7 +136,7 @@ The Aqua Server and Gateway are deployed on a given ECS EC2 cluster. In multi-cl
    `docker login registry.aquasec.com -u <AQUA_USERNAME> -p <AQUA_PASSWORD>`
 2. Pull the Aqua Enforcer image. 
    ```
-   docker pull registry.aquasec.com/enforcer:{version}
+   docker pull registry.aquasec.com/enforcer:6.2.preview6
    ```
 3. Push enforcer image to ECR.
 
@@ -190,7 +194,7 @@ Requirements
    `docker login registry.aquasec.com -u <AQUA_USERNAME> -p <AQUA_PASSWORD>`
 2. Pull the Aqua Scanner image. 
    ```
-   docker pull registry.aquasec.com/scanner:{version}
+   docker pull registry.aquasec.com/scanner:6.2.preview6
    ```
 3. Push scanner image to ECR.
 

@@ -29,8 +29,8 @@ A CloudFormation template is used to deploy Aqua CSP. This can be done either wi
    `docker login registry.aquasec.com -u <AQUA_USERNAME> -p <AQUA_PASSWORD>`
 2. Pull the Aqua product images for the Server, Gateway with these commands. 
    ```
-   docker pull registry.aquasec.com/console:{version} 
-   docker pull registry.aquasec.com/gateway:{version} 
+   docker pull registry.aquasec.com/console:6.2.preview6 
+   docker pull registry.aquasec.com/gateway:6.2.preview6 
    ```
 3. Push all of the images to ECR.
 
@@ -92,9 +92,13 @@ When completed, you can obtain the DNS name of the Aqua Server UI from the conso
 # Active-Active Deployment
 For Active-Active configuration select option yes in activeactive parameter while creating the stack.
 
-## Split DB deployment
+# Split DB deployment
 
 Having a seprate DB for audit events is an optional parameter. Select Yes for AuditRDS parameter if you would like to create a separate RDS instance otherwise select No to use single RDS instance both. Default value for AuditRDS (or split DB) is No. 
+
+# External DB (Managed DB) 
+
+If you have an existing PostgreSQL database and want to use the same for aqua deployment, use the cloudformation template aquaFargate-external.yaml.
 
 # Version upgrade
 
