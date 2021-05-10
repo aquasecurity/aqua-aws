@@ -1,4 +1,4 @@
-[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/6.2/aquaFargate.yaml)
+[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/6.0/aquaFargate.yaml)
 
 # Description
 
@@ -92,9 +92,13 @@ When completed, you can obtain the DNS name of the Aqua Server UI from the conso
 # Active-Active Deployment
 For Active-Active configuration select option yes in activeactive parameter while creating the stack.
 
-## Split DB deployment
+# Split DB deployment
 
-Having a seprate DB for audit events is an optional parameter. Select Yes for AuditRDS parameter if you would like to create a separate RDS instance otherwise select No to use single RDS instance both. Default value for AuditRDS (or split DB) is No. 
+Having a seprate DB for audit events is an optional parameter. Select "Yes" for AuditRDS parameter if you would like to create a separate RDS instance otherwise select "No" to use single RDS instance for both. Default value for AuditRDS (or split DB) is No. 
+
+# External DB (Managed DB) 
+
+If you have an existing PostgreSQL database and want to use the same for aqua deployment, use the cloudformation template aquaFargate-external.yaml.
 
 # Version upgrade
 

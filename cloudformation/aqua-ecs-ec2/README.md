@@ -1,4 +1,4 @@
-[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/6.2/aquaEcs.yaml)
+[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/6.0/aquaEcs.yaml)
 
 # Description
 
@@ -105,7 +105,12 @@ For an active-active Server configuration select the ActiveActive parameter valu
 
 ## Split DB deployment
 
-Having a seprate DB for audit events is an optional parameter. Select Yes for AuditRDS parameter if you would like to create a separate RDS instance otherwise select No to use single RDS instance both. Default value for AuditRDS (or split DB) is No. 
+Having a seprate DB for audit events is an optional parameter. Select "Yes" for AuditRDS parameter if you would like to create a separate RDS instance otherwise select "No" to use single RDS instance for both. Default value for AuditRDS (or split DB) is No. 
+
+# External DB (Managed DB) 
+
+If you have an existing PostgreSQL database and want to use the same for aqua deployment, use the cloudformation template aquaEcs-external.yaml.
+
 
 # Version upgrade
 
@@ -113,7 +118,7 @@ To upgrade your Aqua Enterprise version, modify the existing stack with the new 
 
 # Enforcer-only deployment
 
-[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/6.2/aquaEnforcer.yaml)
+[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/6.0/aquaEnforcer.yaml)
 
 ## Description
 
@@ -171,7 +176,7 @@ It will deploy Aqua Enforcer in your desired cluster and the newly deployed enfo
 
 # Scanner-only Deployment. 
 
-[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/6.2/aquaScanner.yaml)
+[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/6.0/aquaScanner.yaml)
 
 ## Description
 
