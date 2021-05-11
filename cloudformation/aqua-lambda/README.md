@@ -1,4 +1,4 @@
-[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-serverless&templateURL=https://s3.amazonaws.com/aqua-security-public/aquaServerless.yaml)
+[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-serverless&templateURL=https://s3.amazonaws.com/aqua-security-public/6.2/aquaServerless.yaml)
 
 # Description
 
@@ -37,12 +37,18 @@ When completed, you can obtain the generated `AQUA_SQS_URL` from the outputs tab
 ```
 aws --region us-east-1 cloudformation create-stack --capabilities CAPABILITY_NAMED_IAM \
     --stack-name aqua-serverless-audit --template-body file://aquaServerless.yaml \
-    --parameters ParameterKey=AquaGatewayAddress,ParameterValue=x.x.x.x:3622 \
+    --parameters ParameterKey=AquaGatewayAddress,ParameterValue=x.x.x.x:8443 \
                  ParameterKey=AquaToken,ParameterValue=xxxx \
                  ParameterKey=S3Bucket,ParameterValue=xxxx \ 
                  ParameterKey=S3CodeKey,ParameterValue=xxxx \
+                 ParameterKey=CommunicationMethod,ParameterValue=grpc \
 ```
-3. Run the AWS create-stack CLI command.
+In case the choosen communication method is SSH, following changes need to be done in the command:
+* AquaGatewayAddress parameter value should include port 3622 (and not 8443)
+* CommunicationMethod parameter value should be ssh
+
+
+2. Run the AWS create-stack CLI command.
 
 It will typically require up to 20 minutes for your stack to be created and deployed.
 When completed, you can obtain the `AQUA_SQS_URL` from the console output, under key name `aquaSQSUrl`.

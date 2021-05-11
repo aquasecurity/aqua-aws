@@ -1,4 +1,4 @@
-[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/aquaFargate.yaml)
+[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/6.0/aquaFargate.yaml)
 
 # Description
 
@@ -19,7 +19,8 @@ A CloudFormation template is used to deploy Aqua CSP. This can be done either wi
 
 # Requirements
  
- - A VPC with at least 2 subnets 
+ - A VPC with at least 2 subnets
+ - A certificate via AWS Certificate Manager
  - From Aqua Security: your Aqua credentials (username and password) and CSP License Token
 
 # Before deployment
@@ -90,6 +91,19 @@ When completed, you can obtain the DNS name of the Aqua Server UI from the conso
 
 # Active-Active Deployment
 For Active-Active configuration select option yes in activeactive parameter while creating the stack.
+
+# Split DB deployment
+
+Having a seprate DB for audit events is an optional parameter. Select "Yes" for AuditRDS parameter if you would like to create a separate RDS instance otherwise select "No" to use single RDS instance for both. Default value for AuditRDS (or split DB) is No. 
+
+# External DB (Managed DB) 
+
+If you have an existing PostgreSQL database and want to use the same for aqua deployment, use the cloudformation template aquaFargate-external.yaml.
+
+# Microenforcer Deployment 
+
+AWS Fargate is a Container as a Service (CaaS) enviornment and you can deploy aqua microenforcer to provide runtime security to the containers deployed in AWS Fargate. Please refer to the the microenforcer docuemntation for more details. 
+https://docs.aquasec.com/v6.0/docs/microenforcer
 
 # Version upgrade
 
