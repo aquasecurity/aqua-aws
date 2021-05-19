@@ -69,6 +69,9 @@ Parameters:
   ECSClusterName:
     Description: Existing ECS cluster name
     Type: String
+    MinLength: '5'
+    MaxLength: '12'
+    AllowedPattern: '[a-z0-9]*'
   EcsSecurityGroupId:
     Type: 'AWS::EC2::SecurityGroup::Id'
     Description: The security group assigned to the ECS cluster or ECS Instances during cluster creation
@@ -787,7 +790,7 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       AccessControl: Private
-      BucketName: !Sub '${AWS::StackName}-lb-accesslogs'
+      BucketName: !Sub '${ECSClusterName}-lb-accesslogs'
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
