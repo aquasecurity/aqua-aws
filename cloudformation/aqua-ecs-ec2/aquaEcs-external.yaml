@@ -732,6 +732,12 @@ Resources:
               ReadOnly: true
           Name: aqua-enforcer
           Privileged: true
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Join ['-', ['/aqua/enforcer', !Join ["-", ["td", !GetAtt SampleString.RandomString]]]]
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: aquaEnforcer
           Secrets:
             - Name: AQUA_TOKEN
               ValueFrom: !Ref Secret1
@@ -933,6 +939,11 @@ Resources:
     Properties:
       LogGroupName: !Join ['-', ['/aqua/gateway', !Join ["-", ["td", !GetAtt SampleString.RandomString]]]]
       RetentionInDays: 30
+  AquaEnforcerLogs:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      LogGroupName: !Join ['-', ['/aqua/enforcer', !Join ["-", ["td", !GetAtt SampleString.RandomString]]]]
+      RetentionInDays: 30    
   LBLogsStoreBucket:
     Type: AWS::S3::Bucket
     Properties:
