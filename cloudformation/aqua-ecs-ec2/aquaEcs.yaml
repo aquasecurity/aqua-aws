@@ -568,6 +568,12 @@ Resources:
               ReadOnly: true
           Name: aqua-enforcer
           Privileged: true
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Join ['-', ['/aqua/enforcer', !Ref ECSClusterName]]
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: aquaEnforcer
           Secrets:
             - Name: AQUA_TOKEN
               ValueFrom: !Ref Secret1
@@ -772,6 +778,11 @@ Resources:
     Properties:
       LogGroupName: !Join ['-', ['/aqua/gateway', !Ref ECSClusterName]]
       RetentionInDays: 30
+  AquaEnforcerLogs:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      LogGroupName: !Join ['-', ['/aqua/enforcer', !Ref ECSClusterName]]
+      RetentionInDays: 30    
   LBLogsStoreBucket:
     Type: AWS::S3::Bucket
     Properties:
