@@ -35,6 +35,58 @@ Parameters:
         Type: String
         Description: Enter the existing ECS Cluster name.
 Resources:
+    LambdaExecutionRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action:
+                - sts:AssumeRole
+        Policies:
+          - PolicyName: allowLambdaLogging
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: "Allow"
+                  Action:
+                    - "logs:*"
+                  Resource: "*"              
+                        
+    RandomStringLambdaFunction:
+        Type: AWS::Lambda::Function
+        Properties:
+          Handler: index.lambda_handler
+          Timeout: 10
+          Role: !GetAtt "LambdaExecutionRole.Arn"
+          Runtime: python3.6
+          Code:
+            ZipFile: |
+              import cfnresponse
+              from random import choice
+              from string import ascii_lowercase, digits
+              def random_string(length=8, chars=ascii_lowercase + digits):
+                return "".join(choice(chars) for x in range(length))
+              def lambda_handler(event, context):
+                print(f"Data in event: {event}")
+                response_data = {}
+                if event["RequestType"] == "Create":
+                  string_length = int(event["ResourceProperties"]["Length"])
+                  physicalResourceId = random_string(string_length)
+                  response_data = { "RandomString": physicalResourceId }
+                
+                else: # if event["RequestType"] == "Update" or event["RequestType"] == "Delete":
+                  physicalResourceId = event["PhysicalResourceId"]
+                cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data, physicalResourceId)
+    SampleString:
+        Type: AWS::CloudFormation::CustomResource
+        Properties:
+          Length: 5
+          ServiceToken: !GetAtt RandomStringLambdaFunction.Arn
     AquaEnforcerTaskDefinition:
         Type: 'AWS::ECS::TaskDefinition'
         Properties:
@@ -65,6 +117,12 @@ Resources:
                   ReadOnly: true
               Name: aqua-enforcer
               Privileged: true
+              LogConfiguration:
+                LogDriver: awslogs
+                Options:
+                  awslogs-group: !Join ['-', ['/aqua/enforcer', !Join ["-", ["td", !GetAtt SampleString.RandomString]]]]
+                  awslogs-region: !Ref "AWS::Region"
+                  awslogs-stream-prefix: aquaEnforcer
               Environment:
                 - Name: AQUA_SERVER
                   Value: !Ref AquaGatewayAddress
@@ -78,7 +136,7 @@ Resources:
                   Value: !Join 
                     - '-'
                     - - ECS
-                      - !Ref ECSClusterName
+                      - !Join ["-", ["aqua-enf-td", !GetAtt SampleString.RandomString]]
               Image: !Ref AquaEnforcerImage
               Cpu: '512'
           Volumes:
@@ -108,8 +166,8 @@ Resources:
               Name: etc
           Family: !Join 
             - '-'
-            - - !Ref ECSClusterName
-              - aqua-enforcer
+            - - aqua-enforcer
+              - !Join ["-", ["td", !GetAtt SampleString.RandomString]]
     AquaEnforcerDaemon:
         DependsOn:
           - AquaEnforcerTaskDefinition
@@ -119,6 +177,10 @@ Resources:
           SchedulingStrategy: DAEMON
           ServiceName: !Join 
             - '-'
-            - - !Ref ECSClusterName
-              - aqua-enforcer
-          TaskDefinition: !Ref AquaEnforcerTaskDefinition
+            - - aqua-enforcer
+              - !Join ["-", ["td", !GetAtt SampleString.RandomString]]
+    AquaEnforcerLogs:
+        Type: 'AWS::Logs::LogGroup'
+        Properties:
+          LogGroupName: !Join ['-', ['/aqua/enforcer', !Join ["-", ["td", !GetAtt SampleString.RandomString]]]]
+          RetentionInDays: 30      
