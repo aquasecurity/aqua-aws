@@ -66,8 +66,7 @@ Parameters:
     Description: Existing ECS cluster name
     Type: String
     MinLength: '5'
-    MaxLength: '12'
-    AllowedPattern: '[a-z0-9]*'
+    MaxLength: '25'
   EcsSecurityGroupId:
     Type: 'AWS::EC2::SecurityGroup::Id'
     Description: The security group assigned to the ECS cluster or ECS Instances during cluster creation
@@ -153,6 +152,58 @@ Conditions:
   CreateAuditrds: !Equals [!Ref AuditRDS, 'Yes']
   ReplaceAuditrds: !Equals [!Ref AuditRDS, 'No']  
 Resources:
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: allowLambdaLogging
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "logs:*"
+                Resource: "*"              
+                        
+  RandomStringLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.lambda_handler
+      Timeout: 10
+      Role: !GetAtt "LambdaExecutionRole.Arn"
+      Runtime: python3.6
+      Code:
+        ZipFile: |
+          import cfnresponse
+          from random import choice
+          from string import ascii_lowercase, digits
+          def random_string(length=8, chars=ascii_lowercase + digits):
+            return "".join(choice(chars) for x in range(length))
+          def lambda_handler(event, context):
+            print(f"Data in event: {event}")
+            response_data = {}
+            if event["RequestType"] == "Create":
+              string_length = int(event["ResourceProperties"]["Length"])
+              physicalResourceId = random_string(string_length)
+              response_data = { "RandomString": physicalResourceId }
+            
+            else: # if event["RequestType"] == "Update" or event["RequestType"] == "Delete":
+              physicalResourceId = event["PhysicalResourceId"]
+            cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data, physicalResourceId)
+  SampleString:
+   Type: AWS::CloudFormation::CustomResource
+   Properties:
+     Length: 5
+     ServiceToken: !GetAtt RandomStringLambdaFunction.Arn
   AquaConsoleLB:
     Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
     DependsOn:
@@ -165,8 +216,8 @@ Resources:
     Properties:
       Name: !Join 
         - '-'
-        - - !Ref ECSClusterName
-          - AquaConsoleLB
+        - - AquaConsoleLB
+          - !GetAtt SampleString.RandomString
       Scheme: !Ref LBScheme
       SecurityGroups:
         - !Ref AquaConsoleSecurityGroup
@@ -183,8 +234,8 @@ Resources:
     Properties:
       Family: !Join 
         - '-'
-        - - !Ref ECSClusterName
-          - aqua-console
+        - - aqua-console
+          - !Join ["-", ["td", !GetAtt SampleString.RandomString]]
       RequiresCompatibilities:
         - EC2
       Volumes:
@@ -194,8 +245,8 @@ Resources:
       ContainerDefinitions:
         - Name: !Join 
             - '-'
-            - - !Ref ECSClusterName
-              - aqua-console
+            - - aqua-console
+              - !Join ["-", ["td", !GetAtt SampleString.RandomString]]
           Image: !Ref AquaServerImage
           Cpu: '1024'
           Ulimits:
@@ -215,7 +266,7 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Join ['-', ['/aqua/console', !Ref ECSClusterName]]
+              awslogs-group: !Join ['-', ['/aqua/console', !Join ["-", ["td", !GetAtt SampleString.RandomString]]]]
               awslogs-region: !Ref "AWS::Region"
               awslogs-stream-prefix: aquaConsole
           Essential: 'true'
@@ -268,8 +319,8 @@ Resources:
       LaunchType: EC2
       ServiceName: !Join 
         - '-'
-        - - !Ref ECSClusterName
-          - aqua-console
+        - - aqua-console
+          - !Join ["-", ["td", !GetAtt SampleString.RandomString]]
       DesiredCount: 1
       PlacementStrategies:
         - Type: spread
@@ -282,14 +333,14 @@ Resources:
       LoadBalancers:
         - ContainerName: !Join 
             - '-'
-            - - !Ref ECSClusterName
-              - aqua-console
+            - - aqua-console
+              - !Join ["-", ["td", !GetAtt SampleString.RandomString]]
           ContainerPort: 8080
           TargetGroupArn: !Ref AquaConsoleTargetGroup
         - ContainerName: !Join 
             - '-'
-            - - !Ref ECSClusterName
-              - aqua-console
+            - - aqua-console
+              - !Join ["-", ["td", !GetAtt SampleString.RandomString]]
           ContainerPort: 8443
           TargetGroupArn: !Ref AquaConsoleGrpcTargetGroup
       TaskDefinition: !Ref AquaConsoleTaskDefinition
@@ -305,8 +356,8 @@ Resources:
     Properties:
       Family: !Join 
         - '-'
-        - - !Ref ECSClusterName
-          - aqua-console
+        - - aqua-console
+          - !Join ["-", ["td", !GetAtt SampleString.RandomString]]
       RequiresCompatibilities:
         - EC2
       Volumes:
@@ -316,8 +367,8 @@ Resources:
       ContainerDefinitions:
         - Name: !Join 
             - '-'
-            - - !Ref ECSClusterName
-              - aqua-console
+            - - aqua-console
+              - !Join ["-", ["td", !GetAtt SampleString.RandomString]]
           Image: !Ref AquaServerImage
           Cpu: '1024'
           Ulimits:
@@ -337,7 +388,7 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Join ['-', ['/aqua/console', !Ref ECSClusterName]]
+              awslogs-group: !Join ['-', ['/aqua/console', !Join ["-", ["td", !GetAtt SampleString.RandomString]]]]
               awslogs-region: !Ref "AWS::Region"
               awslogs-stream-prefix: aquaConsole
           Essential: 'true'
@@ -402,8 +453,8 @@ Resources:
       LaunchType: EC2
       ServiceName: !Join 
         - '-'
-        - - !Ref ECSClusterName
-          - aqua-console
+        - - aqua-console
+          - !Join ["-", ["td", !GetAtt SampleString.RandomString]]
       DesiredCount: 1
       PlacementStrategies:
         - Type: spread
@@ -416,14 +467,14 @@ Resources:
       LoadBalancers:
         - ContainerName: !Join 
             - '-'
-            - - !Ref ECSClusterName
-              - aqua-console
+            - - aqua-console
+              - !Join ["-", ["td", !GetAtt SampleString.RandomString]]
           ContainerPort: 8080
           TargetGroupArn: !Ref AquaConsoleTargetGroup
         - ContainerName: !Join 
             - '-'
-            - - !Ref ECSClusterName
-              - aqua-console
+            - - aqua-console
+              - !Join ["-", ["td", !GetAtt SampleString.RandomString]]
           ContainerPort: 8443
           TargetGroupArn: !Ref AquaConsoleGrpcTargetGroup
       TaskDefinition: !Ref AquaConsoleTaskDefinitionActiveActive
@@ -467,8 +518,8 @@ Resources:
         HttpCode: '200'
       Name: !Join 
         - '-'
-        - - !Ref ECSClusterName
-          - aqua-console
+        - - aqua-console
+          - !Join ["-", ["tg", !GetAtt SampleString.RandomString]]
       Port: '8080'
       Protocol: HTTP
       TargetGroupAttributes:
@@ -488,8 +539,8 @@ Resources:
       HealthCheckPort: 8080
       Name: !Join 
         - '-'
-        - - !Ref ECSClusterName
-          - aqua-grpc
+        - - aqua-console-grpc
+          - !Join ["-", ["tg", !GetAtt SampleString.RandomString]]   
       Port: '8443'
       Protocol: TCP
       TargetGroupAttributes:
@@ -502,8 +553,8 @@ Resources:
     Properties:
       Name: !Join 
         - '-'
-        - - !Ref ECSClusterName
-          - aquaNlb
+        - - aquaNlb
+          - !GetAtt SampleString.RandomString
       Scheme: !Ref LBScheme
       Subnets: !Ref LbSubnets
       LoadBalancerAttributes: 
@@ -535,8 +586,8 @@ Resources:
       HealthCheckPort: 8089
       Name: !Join 
         - '-'
-        - - !Ref ECSClusterName
-          - aqua-gateway
+        - - aqua-gateway
+          - !Join ["-", ["tg", !GetAtt SampleString.RandomString]]
       Port: '3622'
       Protocol: TCP
       VpcId: !Ref VpcId
@@ -550,8 +601,8 @@ Resources:
     Properties:
       Family: !Join 
         - '-'
-        - - !Ref ECSClusterName
-          - aqua-gateway
+        - - aqua-gateway
+          - !Join ["-", ["td", !GetAtt SampleString.RandomString]]
       TaskRoleArn: !Ref AquaEcsTaskRole
       ExecutionRoleArn: !Ref AquaEcsTaskRole
       RequiresCompatibilities:
@@ -559,8 +610,8 @@ Resources:
       ContainerDefinitions:
         - Name: !Join 
             - '-'
-            - - !Ref ECSClusterName
-              - aqua-gateway
+            - - aqua-gateway
+              - !Join ["-", ["td", !GetAtt SampleString.RandomString]]
           Image: !Ref AquaGatewayImage
           Ulimits:
             - Name: nofile
@@ -578,7 +629,7 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Join ['-', ['/aqua/gateway', !Ref ECSClusterName]]
+              awslogs-group: !Join ['-', ['/aqua/gateway', !Join ["-", ["td", !GetAtt SampleString.RandomString]]]]
               awslogs-region: !Ref "AWS::Region"
               awslogs-stream-prefix: aquaGateway
           Secrets:
@@ -627,8 +678,8 @@ Resources:
       Cluster: !Ref ECSClusterName
       ServiceName: !Join 
         - '-'
-        - - !Ref ECSClusterName
-          - aqua-gateway
+        - - aqua-gateway
+          - !Join ["-", ["td", !GetAtt SampleString.RandomString]]
       DesiredCount: 2
       PlacementStrategies:
         - Type: spread
@@ -641,8 +692,8 @@ Resources:
       LoadBalancers:
         - ContainerName: !Join 
             - '-'
-            - - !Ref ECSClusterName
-              - aqua-gateway
+            - - aqua-gateway
+              - !Join ["-", ["td", !GetAtt SampleString.RandomString]]
           ContainerPort: 3622
           TargetGroupArn: !Ref AquaGatewayTargetGroup     
       TaskDefinition: !Ref AquaGatewayTaskDefinition
@@ -680,6 +731,12 @@ Resources:
               ReadOnly: true
           Name: aqua-enforcer
           Privileged: true
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Join ['-', ['/aqua/enforcer', !Join ["-", ["td", !GetAtt SampleString.RandomString]]]]
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: aquaEnforcer
           Secrets:
             - Name: AQUA_TOKEN
               ValueFrom: !Ref Secret1
@@ -695,8 +752,8 @@ Resources:
             - Name: AQUA_LOGICAL_NAME
               Value: !Join 
                 - '-'
-                - - ECS
-                  - !Ref ECSClusterName
+                - - !Join ["-", ["aqua-enf-td", !GetAtt SampleString.RandomString]]
+                  - ECS
           Image: !Ref AquaEnforcerImage
           Cpu: '512'
       Volumes:
@@ -726,8 +783,8 @@ Resources:
           Name: etc
       Family: !Join 
         - '-'
-        - - !Ref ECSClusterName
-          - aqua-enforcer
+        - - aqua-enforcer
+          - !Join ["-", ["td", !GetAtt SampleString.RandomString]]
       ExecutionRoleArn: !Ref AquaEcsTaskRole
   AquaEnforcerDaemon:
     DependsOn:
@@ -738,8 +795,8 @@ Resources:
       SchedulingStrategy: DAEMON
       ServiceName: !Join 
         - '-'
-        - - !Ref ECSClusterName
-          - aqua-enforcer
+        - - aqua-enforcer
+          - !Join ["-", ["td", !GetAtt SampleString.RandomString]]
       TaskDefinition: !Ref AquaEnforcerTaskDefinition
   AquaConsoleSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
@@ -809,8 +866,8 @@ Resources:
     Properties:
       RoleName: !Join 
         - '-'
-        - - !Ref ECSClusterName
-          - AquaEcsTaskRole
+        - - AquaEcsTaskRole
+          - !GetAtt SampleString.RandomString
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -824,8 +881,8 @@ Resources:
       Policies:
         - PolicyName: !Join 
             - '-'
-            - - !Ref ECSClusterName
-              - AquaScannerPolicy
+            - - AquaScannerPolicy
+              - !Join ["-", ["ecstr", !GetAtt SampleString.RandomString]]
           PolicyDocument:
             Version: 2012-10-17
             Statement:
@@ -850,8 +907,8 @@ Resources:
               - !Ref 'AWS::NoValue'
         - PolicyName: !Join 
             - '-'
-            - - !Ref ECSClusterName
-              - AquaSecretsManagerPolicy
+            - - AquaSecretsManagerPolicy
+              - !Join ["-", ["ecstr", !GetAtt SampleString.RandomString]]
           PolicyDocument:
             Version: 2012-10-17
             Statement:
@@ -861,8 +918,8 @@ Resources:
                 Resource: '*'
         - PolicyName: !Join
             - '-'
-            - - !Ref ECSClusterName
-              - KMSPermisions
+            - - KMSPermisions
+              - !Join ["-", ["ecstr", !GetAtt SampleString.RandomString]]
           PolicyDocument:
             Version: 2012-10-17
             Statement:
@@ -874,18 +931,25 @@ Resources:
   AquaConsoleLogs:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      LogGroupName: !Join ['-', ['/aqua/console', !Ref ECSClusterName]]
+      LogGroupName: !Join ['-', ['/aqua/console', !Join ["-", ["td", !GetAtt SampleString.RandomString]]]]
       RetentionInDays: 30
   AquaGatewayLogs:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      LogGroupName: !Join ['-', ['/aqua/gateway', !Ref ECSClusterName]]
+      LogGroupName: !Join ['-', ['/aqua/gateway', !Join ["-", ["td", !GetAtt SampleString.RandomString]]]]
       RetentionInDays: 30
+  AquaEnforcerLogs:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      LogGroupName: !Join ['-', ['/aqua/enforcer', !Join ["-", ["td", !GetAtt SampleString.RandomString]]]]
+      RetentionInDays: 30    
   LBLogsStoreBucket:
     Type: AWS::S3::Bucket
     Properties:
       AccessControl: Private
-      BucketName: !Sub '${ECSClusterName}-lb-accesslogs'
+      BucketName: !Sub
+        - ${ECSClusterName2}-lb-accesslogs
+        - { ECSClusterName2: !Join ["-", ["s3", !GetAtt SampleString.RandomString]] }
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -933,8 +997,8 @@ Resources:
       Description: Aqua RDS Username
       Name: !Join
         - '/'
-        - - !Ref ECSClusterName
-          - AquaRdsUsername
+        - - AquaRdsUsername
+          - !GetAtt SampleString.RandomString
       SecretString: !Ref AquaDBUserName  
 
   SecretP:
@@ -943,8 +1007,8 @@ Resources:
       Description: Aqua RDS Password
       Name: !Join
         - '/'
-        - - !Ref ECSClusterName
-          - AquaRdsPassword
+        - - AquaRdsPassword
+          - !GetAtt SampleString.RandomString
       SecretString: !Ref AquaDBPassword 
 
   SecretAuditU:
@@ -954,8 +1018,8 @@ Resources:
       Description: Audit RDS Username
       Name: !Join
         - '/'
-        - - !Ref ECSClusterName
-          - AuditRdsUsername
+        - - AuditRdsUsername
+          - !GetAtt SampleString.RandomString
       SecretString: !Ref AuditDBUserName  
 
   SecretAuditP:
@@ -965,8 +1029,8 @@ Resources:
       Description: Audit RDS Password
       Name: !Join
         - '/'
-        - - !Ref ECSClusterName
-          - AuditRdsPassword
+        - - AuditRdsPassword
+          - !GetAtt SampleString.RandomString
       SecretString: !Ref AuditDBPassword
   Secret1:
     Type: AWS::SecretsManager::Secret
@@ -974,8 +1038,8 @@ Resources:
       Description: Aqua batch install token
       Name: !Join 
         - '/'
-        - - !Ref ECSClusterName
-          - AquaBatchInstallToken
+        - - AquaBatchInstallToken
+          - !GetAtt SampleString.RandomString
       SecretString: 
         !Ref BatchInstallToken
 Outputs:
@@ -1014,10 +1078,12 @@ Outputs:
     Description : Aqua DB Instance Identifier
     Value : !Ref AquaDBInstanceEndPointURL
     Export :
-      Name : Aqua53DBInstanceID
+      Name : 
+        'Fn::Sub': '${AWS::StackName}-Aqua53DBInstanceID'
   AquaAuditDBInstanceIdentifier:
     Condition: CreateAuditrds
     Description : Aqua audit DB Instance Identifier
     Value : !Ref AuditDBInstanceEndPointURL
     Export :
-      Name : Aqua53AuditDBInstanceID
+      Name : 
+        'Fn::Sub': '${AWS::StackName}-Aqua53AuditDBInstanceID'
