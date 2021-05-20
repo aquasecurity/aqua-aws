@@ -717,8 +717,7 @@ Resources:
                     - DNSName
                   - ':8443'
   AquaGatewayService:
-    Type: 'AWS::ECS::Service'
-    Condition: NotCreateActiveActive    
+    Type: 'AWS::ECS::Service'   
     DependsOn:
       - AquaGatewayTaskDefinition
       - AquaNlb
