@@ -256,124 +256,6 @@ Resources:
       Type: application
   AquaConsoleTaskDefinition:
     Type: 'AWS::ECS::TaskDefinition'
-    Condition: NotCreateActiveActive
-    DependsOn:
-      - AquaEcsTaskRole
-      - RdsInstance
-      - AquaConsoleLogs
-      - Secret0
-      - SecretUsername
-    Properties:
-      Family: !Join
-        - '-'
-        - - !Ref ECSCluster
-          - aqua-console
-      RequiresCompatibilities:
-        - FARGATE
-      Cpu: '2048'
-      Memory: '4096'
-      NetworkMode: awsvpc
-      ExecutionRoleArn: !Ref AquaEcsTaskRole
-      ContainerDefinitions:
-        - Name: !Join
-            - '-'
-            - - !Ref ECSCluster
-              - aqua-console
-          Image: !Ref AquaServerImage
-          Ulimits:
-            - Name: nofile
-              SoftLimit: '1048576'
-              HardLimit: '1048576'
-          PortMappings:
-            - ContainerPort: '8080'
-              HostPort: '8080'
-              Protocol: tcp
-            - ContainerPort: '8443'
-              HostPort: '8443'
-              Protocol: tcp
-          Essential: 'true'
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              awslogs-group: !Join ['-', ['/aqua/console', !Ref ECSCluster]]
-              awslogs-region: !Ref "AWS::Region"
-              awslogs-stream-prefix: aquaConsole
-          Secrets:
-            - Name: SCALOCK_DBPASSWORD
-              ValueFrom: !Ref Secret0
-            - Name: SCALOCK_AUDIT_DBPASSWORD
-              ValueFrom: !Ref Secret0
-            - Name: SCALOCK_DBUSER
-              ValueFrom: !Ref SecretUsername
-            - Name: SCALOCK_AUDIT_DBUSER
-              ValueFrom: !Ref SecretUsername
-          Environment:
-            - Name: SCALOCK_LOG_LEVEL
-              Value: DEBUG
-            - Name: AQUA_GRPC_MODE
-              Value: 1
-            - Name: AQUA_DOCKERLESS_SCANNING
-              Value: 1
-            - Name: SCALOCK_DBSSL
-              Value: require
-            - Name: SCALOCK_AUDIT_DBSSL
-              Value: require
-            - Name: SCALOCK_DBNAME
-              Value: scalock
-            - Name: BATCH_INSTALL_GATEWAY
-              Value: !GetAtt
-                - AquaNlb
-                - DNSName
-            - Name: SCALOCK_DBHOST
-              Value: !GetAtt
-                - RdsInstance
-                - Endpoint.Address
-            - Name: SCALOCK_AUDIT_DBNAME
-              Value: slk_audit
-            - Name: SCALOCK_AUDIT_DBHOST
-              Value: !If [CreateAuditrds, !GetAtt AuditRdsInstance.Endpoint.Address, !GetAtt RdsInstance.Endpoint.Address]
-      TaskRoleArn: !Ref AquaEcsTaskRole
-  AquaConsoleService:
-    Type: 'AWS::ECS::Service'
-    Condition: NotCreateActiveActive
-    DependsOn:
-      - AquaConsoleTaskDefinition
-      - AquaConsoleListener
-      - AquaConsoleGrpcListener
-    Properties:
-      Cluster: !Ref ECSCluster
-      LaunchType: FARGATE
-      NetworkConfiguration:
-        AwsvpcConfiguration:
-          AssignPublicIp: ENABLED
-          SecurityGroups:
-            - !Ref AquaFargateSecurityGroup
-          Subnets: !Ref EcsInstanceSubnets
-      ServiceName: !Join
-        - '-'
-        - - !Ref ECSCluster
-          - aqua-console
-      DesiredCount: '1'
-      DeploymentConfiguration:
-        MaximumPercent: '200'
-        MinimumHealthyPercent: '100'
-      LoadBalancers:
-        - ContainerName: !Join
-            - '-'
-            - - !Ref ECSCluster
-              - aqua-console
-          ContainerPort: '8080'
-          TargetGroupArn: !Ref AquaConsoleTargetGroup
-        - ContainerName: !Join
-            - '-'
-            - - !Ref ECSCluster
-              - aqua-console
-          ContainerPort: '8443'
-          TargetGroupArn: !Ref AquaConsoleGrpcTargetGroup
-      TaskDefinition: !Ref AquaConsoleTaskDefinition
-  AquaConsoleTaskDefinitionActiveActive:
-    Type: 'AWS::ECS::TaskDefinition'
-    Condition: CreateActiveActive
     DependsOn:
       - AquaEcsTaskRole
       - RdsInstance
@@ -427,7 +309,7 @@ Resources:
             - Name: AQUA_PUBSUB_DBPASSWORD
               ValueFrom: !Ref Secret0
             - Name: AQUA_PUBSUB_DBUSER
-              ValueFrom: !Ref SecretUsername
+              ValueFrom: !Ref SecretUsername  
           Environment:
             - Name: SCALOCK_LOG_LEVEL
               Value: DEBUG
@@ -454,21 +336,18 @@ Resources:
             - Name: SCALOCK_AUDIT_DBHOST
               Value: !If [CreateAuditrds, !GetAtt AuditRdsInstance.Endpoint.Address, !GetAtt RdsInstance.Endpoint.Address]
             - Name: AQUA_PUBSUB_DBSSL
-              Value: require
+              Value: !If [CreateActiveActive, require, !Ref "AWS::NoValue"]
             - Name: AQUA_PUBSUB_DBNAME
-              Value: pubsub
+              Value: !If [CreateActiveActive, pubsub, !Ref "AWS::NoValue"]
             - Name: AQUA_PUBSUB_DBHOST
-              Value: !GetAtt
-                    - RdsInstance
-                    - Endpoint.Address
+              Value: !If [CreateActiveActive, !GetAtt RdsInstance.Endpoint.Address, !Ref "AWS::NoValue"]
             - Name: AQUA_CLUSTER_MODE
-              Value: active-active
+              Value: !If [CreateActiveActive, active-active, !Ref "AWS::NoValue"]  
       TaskRoleArn: !Ref AquaEcsTaskRole
-  AquaConsoleServiceActiveActive:
+  AquaConsoleService:
     Type: 'AWS::ECS::Service'
-    Condition: CreateActiveActive	
     DependsOn:
-      - AquaConsoleTaskDefinitionActiveActive
+      - AquaConsoleTaskDefinition
       - AquaConsoleListener
       - AquaConsoleGrpcListener
     Properties:
@@ -501,7 +380,7 @@ Resources:
               - aqua-console
           ContainerPort: '8443'
           TargetGroupArn: !Ref AquaConsoleGrpcTargetGroup
-      TaskDefinition: !Ref AquaConsoleTaskDefinitionActiveActive
+      TaskDefinition: !Ref AquaConsoleTaskDefinition
   AquaConsoleListener:
     Type: 'AWS::ElasticLoadBalancingV2::Listener'
     DependsOn:
@@ -530,8 +409,8 @@ Resources:
         HttpCode: '200'
       Name: !Join
         - '-'
-        - - !Ref ECSCluster
-          - aqua-console
+        - - aqua-console
+          - !GetAtt SampleString.RandomString
       Port: '8080'
       Protocol: HTTP
       TargetGroupAttributes:
@@ -567,8 +446,8 @@ Resources:
       HealthCheckPort: 8443
       Name: !Join
         - '-'
-        - - !Ref ECSCluster
-          - aqua-console-grpc
+        - - aqua-console-grpc
+          - !GetAtt SampleString.RandomString
       Port: '8443'
       Protocol: TCP
       TargetGroupAttributes:
@@ -614,8 +493,8 @@ Resources:
       HealthCheckPort: 8099
       Name: !Join
         - '-'
-        - - !Ref ECSCluster
-          - aqua-gateway-ssh
+        - - aqua-gateway-ssh
+          - !GetAtt SampleString.RandomString
       Port: '3622'
       Protocol: TCP
       VpcId: !Ref VpcId
@@ -632,8 +511,8 @@ Resources:
       HealthCheckPort: 8099
       Name: !Join
         - '-'
-        - - !Ref ECSCluster
-          - aqua-gateway-grpc
+        - - aqua-gateway-grpc
+          - !GetAtt SampleString.RandomString
       Port: '8443'
       Protocol: TCP
       TargetGroupAttributes:
