@@ -1,6 +1,6 @@
 [![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/6.2/aquaEcs.yaml)
 
-# Description
+# Description1
 
 This page contains instructions for creating a deployment of Aqua Enterprise on an Amazon ECS EC2 cluster. It will deploy all Aqua Enterprise components in one ECS cluster with advanced configurations like a separate DB for Audit, SSL enablement for the Aqua console, and active-active Server mode. 
  
