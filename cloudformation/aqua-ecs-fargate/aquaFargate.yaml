@@ -919,9 +919,11 @@ Outputs:
     Description : Aqua DB Instance Identifier
     Value : !Ref RdsInstance
     Export :
-      Name : !Join ["-", ["Aqua53DBInstanceID", !GetAtt SampleString.RandomString]]
+      Name : 
+        'Fn::Sub': 'Aqua53DBInstanceID-${AWS::StackName}'
   AquaAuditDBInstanceIdentifier:
     Description : Aqua audit DB Instance Identifier
     Value : !Ref AuditRdsInstance
     Export :
-      Name : !Join ["-", ["Aqua53AuditDBInstanceID", !GetAtt SampleString.RandomString]]
+      Name : 
+        'Fn::Sub': 'Aqua53AuditDBInstanceID-${AWS::StackName}'
