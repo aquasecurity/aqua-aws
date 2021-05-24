@@ -378,7 +378,7 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref AquaConsoleGrpcTargetGroup
       LoadBalancerArn: !Ref AquaNlb
-      Port: '8443'
+      Port: '8442'
       Protocol: TCP
   AquaConsoleTargetGroup:
     Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
@@ -406,7 +406,7 @@ Resources:
   AquaConsoleGrpcTargetGroup:
     Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
     DependsOn:
-      - AquaConsoleLB
+      - AquaNlb
     Properties:
       TargetType: instance
       HealthCheckIntervalSeconds: 30
@@ -449,6 +449,18 @@ Resources:
       LoadBalancerArn: !Ref AquaNlb
       Port: '3622'
       Protocol: TCP
+  AquaGatewayGrpcListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    DependsOn:
+      - AquaGatewayGrpcTargetGroup
+      - AquaNlb
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref AquaGatewayGrpcTargetGroup
+      LoadBalancerArn: !Ref AquaNlb
+      Port: '8443'
+      Protocol: TCP
   AquaGatewayTargetGroup:
     Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
     DependsOn:
@@ -465,6 +477,24 @@ Resources:
         - - aqua-gateway
           - !Join ["-", ["tg", !GetAtt SampleString.RandomString]]
       Port: '3622'
+      Protocol: TCP
+      VpcId: !Ref VpcId
+  AquaGatewayGrpcTargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    DependsOn:
+      - AquaNlb
+    Properties:
+      TargetType: instance
+      HealthCheckIntervalSeconds: 30
+      HealthCheckProtocol: TCP
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      HealthCheckPort: 8089
+      Name: !Join 
+        - '-'
+        - - aqua-gateway-grpc
+          - !Join ["-", ["tg", !GetAtt SampleString.RandomString]]
+      Port: '8443'
       Protocol: TCP
       VpcId: !Ref VpcId
   AquaGatewayTaskDefinition:
@@ -498,6 +528,9 @@ Resources:
               HostPort: '3622'
             - ContainerPort: '8089'
               HostPort: '8089'
+              Protocol: tcp
+            - ContainerPort: '8443'
+              HostPort: '8443'
               Protocol: tcp
           Cpu: '1024'
           Memory: '2048'
@@ -540,7 +573,7 @@ Resources:
                 - - !GetAtt 
                     - AquaNlb
                     - DNSName
-                  - ':8443'
+                  - ':8442'
       NetworkMode: bridge
   AquaGatewayService:
     Type: 'AWS::ECS::Service'
@@ -549,6 +582,7 @@ Resources:
       - AquaNlb
       - AquaGatewayTargetGroup
       - AquaGatewayListener
+      - AquaGatewayGrpcListener
       - EcsSecurityGroupIngress4
     Properties:
       Cluster: !Ref ECSClusterName
@@ -566,12 +600,18 @@ Resources:
         MaximumPercent: 200
         MinimumHealthyPercent: 100
       LoadBalancers:
-        - ContainerName: !Join 
+        - ContainerName: !Join
             - '-'
             - - aqua-gateway
               - !Join ["-", ["td", !GetAtt SampleString.RandomString]]
-          ContainerPort: 3622
-          TargetGroupArn: !Ref AquaGatewayTargetGroup     
+          ContainerPort: '3622'
+          TargetGroupArn: !Ref AquaGatewayTargetGroup
+        - ContainerName: !Join
+            - '-'
+            - - aqua-gateway
+              - !Join ["-", ["td", !GetAtt SampleString.RandomString]]
+          ContainerPort: '8443'
+          TargetGroupArn: !Ref AquaGatewayGrpcTargetGroup
       TaskDefinition: !Ref AquaGatewayTaskDefinition
   AquaEnforcerTaskDefinition:
     Type: 'AWS::ECS::TaskDefinition'
