@@ -30,9 +30,9 @@ A CloudFormation template is used to deploy Aqua CSP. This can be done either wi
    `docker login registry.aquasec.com -u <AQUA_USERNAME> -p <AQUA_PASSWORD>`
 2. Pull the Aqua product images for the Server, Gateway, and Enforcer with these commands. 
    ```
-   docker pull registry.aquasec.com/console:6.2.preview6 
-   docker pull registry.aquasec.com/gateway:6.2.preview6 
-   docker pull registry.aquasec.com/enforcer:6.2.preview6 
+   docker pull registry.aquasec.com/console:6.2.RC1 
+   docker pull registry.aquasec.com/gateway:6.2.RC1 
+   docker pull registry.aquasec.com/enforcer:6.2.RC1 
    ```
 3. Push all of the images to ECR.
 
