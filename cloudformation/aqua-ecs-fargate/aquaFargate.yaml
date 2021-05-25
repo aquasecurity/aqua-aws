@@ -229,7 +229,7 @@ Resources:
             else: # if event["RequestType"] == "Update" or event["RequestType"] == "Delete":
               physicalResourceId = event["PhysicalResourceId"]
             cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data, physicalResourceId)
-  SampleString:
+  RandomString:
    Type: AWS::CloudFormation::CustomResource
    Properties:
      Length: 5
@@ -238,7 +238,7 @@ Resources:
   ECSCluster:
     Type: AWS::ECS::Cluster
     Properties:
-      ClusterName: !Join ["-", [!Ref ClusterName, !GetAtt SampleString.RandomString]]
+      ClusterName: !Join ["-", [!Ref ClusterName, !GetAtt RandomString.RandomString]]
   # Aqua Console
   AquaConsoleLB:
     Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
@@ -410,7 +410,7 @@ Resources:
       Name: !Join
         - '-'
         - - aqua-console
-          - !GetAtt SampleString.RandomString
+          - !GetAtt RandomString.RandomString
       Port: '8080'
       Protocol: HTTP
       TargetGroupAttributes:
@@ -447,7 +447,7 @@ Resources:
       Name: !Join
         - '-'
         - - aqua-console-grpc
-          - !GetAtt SampleString.RandomString
+          - !GetAtt RandomString.RandomString
       Port: '8443'
       Protocol: TCP
       TargetGroupAttributes:
@@ -494,7 +494,7 @@ Resources:
       Name: !Join
         - '-'
         - - aqua-gateway-ssh
-          - !GetAtt SampleString.RandomString
+          - !GetAtt RandomString.RandomString
       Port: '3622'
       Protocol: TCP
       VpcId: !Ref VpcId
@@ -512,7 +512,7 @@ Resources:
       Name: !Join
         - '-'
         - - aqua-gateway-grpc
-          - !GetAtt SampleString.RandomString
+          - !GetAtt RandomString.RandomString
       Port: '8443'
       Protocol: TCP
       TargetGroupAttributes:
