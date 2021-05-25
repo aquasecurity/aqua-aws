@@ -38,13 +38,13 @@ A CloudFormation template is used to deploy Aqua Enterprise. This can be done ei
 ----
 . Pull the Aqua product images for the Server (Console), Gateway and Aqua Enforcer with these commands:
 +
-[source,options="nowrap"]
+[source,options="nowrap",subs="attributes"]
 ----
 docker pull registry.aquasec.com/console:{imageVersion}
 docker pull registry.aquasec.com/gateway:{imageVersion}
 docker pull registry.aquasec.com/enforcer:{imageVersion}
 ----
-. Push all of the images to ECR.
+. Push all images to ECR.
 
 == Deployment method 1: CloudFormation Management Console
 
