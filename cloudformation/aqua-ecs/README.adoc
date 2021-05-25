@@ -1,4 +1,5 @@
-include::../../var.adoc[]
+:version: 6.2
+:imageVersion: 6.2.RC1
 image:https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png[Launch Stack,link=https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/aquaEcs.yaml]
 
 = Description
@@ -84,7 +85,3 @@ When completed, you can obtain the DNS name of the Aqua Server UI from the conso
 == Version upgrade
 
 To upgrade your Aqua CSP version, modify the existing stack with the new Aqua product images.
-
-
-{version}
-{imageVersion}
