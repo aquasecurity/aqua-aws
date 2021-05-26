@@ -11,10 +11,12 @@ For high availability, you must deploy Aqua on 2 availability zones (AZs).
 These instructions are applicable to all versions of Aqua Enterprise.
 
 Your deployment will create these services:
-- Aqua Server, deployed with an Amazon Application Load Balancer
+
+- Amazon Application Load Balancer.
+- Aqua Server.
 - Aqua Database, created on a new Amazon RDS instance, which includes 7 days of rolling backups
 - Aqua Audit Database, created on a new Amazon RDS instance, which includes 7 days of rolling backups
-- Aqua Gateways (2), each on a separate subnet, deployed with a Network Load Balancer
+- Aqua Gateway.
 - Aqua Enforcer, each on an ECS instance
 
 In addition, it will create an IAM role for giving the Aqua Server access to ECR (Elastic Container Registry).
