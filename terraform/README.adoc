@@ -15,7 +15,7 @@
 ** <<aws-managed-role,AWS Managed Role>>
 ** <<aws-service-limits,AWS Service Limits>>
 ** <<unsupported-instance-configuration,Unsupported Instance Configuration>>
-** [The new ARN and resource ID format must be enabled to propagate tags](#The new ARN and resource ID format must be enabled to propagate tags)
+** <<The new ARN and resource ID format must be enabled to propagate tags,The new ARN and resource ID format must be enabled to propagate tags>>
 * <<running-the-template-step-by-step,Running the Template Step-by-Step>>
 * <<cleaning-up,Cleaning Up>>
 
