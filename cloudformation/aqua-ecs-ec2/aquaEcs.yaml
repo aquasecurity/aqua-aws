@@ -523,10 +523,7 @@ Resources:
       RequiresCompatibilities:
         - EC2
       ContainerDefinitions:
-        - Name: !Join 
-            - '-'
-            - - aqua-gateway
-              - !Join ["-", ["td", !GetAtt RandomString.RandomString]]
+        - Name: !Join ["-", ["aqua-gateway", !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
           Image: !Ref AquaGatewayImage
           Ulimits:
             - Name: nofile
@@ -590,7 +587,7 @@ Resources:
     Properties:
       Cluster: !Ref ECSClusterName
       ServiceName: !Join ["-", ["aqua-gateway", !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
-      DesiredCount: 2
+      DesiredCount: 1
       PlacementStrategies:
         - Type: spread
           Field: 'attribute:ecs.availability-zone'
