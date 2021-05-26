@@ -227,7 +227,7 @@ Resources:
             else: # if event["RequestType"] == "Update" or event["RequestType"] == "Delete":
               physicalResourceId = event["PhysicalResourceId"]
             cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data, physicalResourceId)
-  SampleString:
+  RandomString:
    Type: AWS::CloudFormation::CustomResource
    Properties:
      Length: 5
@@ -236,7 +236,7 @@ Resources:
   ECSCluster:
     Type: AWS::ECS::Cluster
     Properties:
-      ClusterName: !Join ["-", [!Ref ClusterName, !GetAtt SampleString.RandomString]]
+      ClusterName: !Join ["-", [!Ref ClusterName, !GetAtt RandomString.RandomString]]
   # Aqua Console
   AquaConsoleLB:
     Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
