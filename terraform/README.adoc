@@ -34,7 +34,7 @@ Before you can use this template, you'll need to have a few things in place:
 . A domain name registered and a hosted zone configured in AWS Route 53. You can purchase a domain name using AWS Route 53 or use a domain name that you've previously registered with another domain registrar. Below is an example of what this should look like in your AWS Route 53 console for a hosted zone:
 
 [.center.text-center]
-image:/images/01-route53-domain-name-example.jpg[Example of having a Route 53 domain name configured, width=75%]
+image:./images/01-route53-domain-name-example.jpg[Example of having a Route 53 domain name configured, width=75%]
 
 . Terraform installed on the computer that will execute this template. This template was created with Terraform version `{terraform_version}`. If you are new to Terraform, check out https://warrensbox.github.io/terraform-switcher/[Terraform Switcher] to help you get started.
 
@@ -115,7 +115,7 @@ Also, if you copy and paste these commands, make sure that you are performing th
 Whatever method you use to setup your secrets, you should have something similar to the screenshot below:
 
 [.center.text-center]
-image:/images/02-aws-secrets-manager-prepared-example.jpg[Example of having secrets stored in AWS SSM, width=75%]
+image:./images/02-aws-secrets-manager-prepared-example.jpg[Example of having secrets stored in AWS SSM, width=75%]
 
 === S3 Bucket
 
@@ -316,14 +316,14 @@ Feel free to read the information from AWS called https://docs.aws.amazon.com/Am
 This often gets overlooked until it's too late but AWS won't let you create anything you want. This template makes uses of `m5.large` instances but some AWS accounts might have a quoto of zero for this size. Make sure to check out your service limits because this will prevent this template from working. Below is screenshot from AWS CloudTrail showing that the `RunInstances` *Event name* has an *Error code* of _Client.InstanceLimitExceeded_:
 
 [.center.text-center]
-image:/images/03-service-limits-exceeded-example.jpg[Example of Exceeding AWS Service Limits, width=75%]
+image:./images/03-service-limits-exceeded-example.jpg[Example of Exceeding AWS Service Limits, width=75%]
 
 == Unsupported Instance Configuration
 
 This one is a bit tricky because as long as you haven't reached your service limits, you'd assume that you can launch any instance type that is supported by the ECS ami. This is not true and if you try to use an instance such as m3.large, you'll get an *Error code* of _Client.Unsupported_ in CloudTrail:
 
 [.center.text-center]
-image:/images/04-unsupported-client-example.jpg[Example of an unsupported ECS instance configuration, width=75%]
+image:./images/04-unsupported-client-example.jpg[Example of an unsupported ECS instance configuration, width=75%]
 
 Feel free to dig deeper into these messages using the CloudTrail console or the AWS CLI. Here is an AWS CLi command (make sure to replace or remove the `--profile` portion for your command) to help you get started looking for these type of errors but feel free to reference the https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/lookup-events.html[lookup-events] AWS CLI documentation:
 
@@ -345,7 +345,7 @@ AWS has an article about this https://aws.amazon.com/blogs/compute/migrating-you
 Below is a screenshot of making the setting for my IAM user–don't forget to save:
 
 [.center.text-center]
-image:/images/05-amazon-ecs-arn-and-resource-id-settings.jpg[Example of how to configure Amazon ECS ARN and Resource settings for an IAM user, width=75%]
+image:./images/05-amazon-ecs-arn-and-resource-id-settings.jpg[Example of how to configure Amazon ECS ARN and Resource settings for an IAM user, width=75%]
 
 == Running the Template Step-by-Step
 
@@ -449,17 +449,17 @@ gateway_url = internal-aquacsp-alb-gateway-2136472486.ap-northeast-1.elb.amazona
 While the things are spinning up, head over to your CloudWatch Log Groups and search for the `/ecs/aquacsp/` group. Here you can see your logs for the console and gateway in case something doesn't go as expected:
 
 [.center.text-center]
-image:/images/06-aws-cloudwatch-log-group-example.jpg[Example of Finding CloudWatch Logs for Aqua CSP, width=75%]
+image:./images/06-aws-cloudwatch-log-group-example.jpg[Example of Finding CloudWatch Logs for Aqua CSP, width=75%]
 
 Your console should be accessible by whatever FQDN you configured. In my example it's `aqua.securitynoodles.com`:
 
 [.center.text-center]
-image:/images/07-aqua-csp-login-screen-example.jpg[Example of Aqua CSP Login Screen, width=75%]
+image:./images/07-aqua-csp-login-screen-example.jpg[Example of Aqua CSP Login Screen, width=75%]
 
 Login using the administrator password you set and stored in AWS Secrets manager. After logging in, make sure that the Aqua Gateway is connected:
 
 [.center.text-center]
-image:/images/08-aqua-csp-gw-connected-example.jpg[Example of Aqua CSP Gateway successfully connected, width=75%]
+image:./images/08-aqua-csp-gw-connected-example.jpg[Example of Aqua CSP Gateway successfully connected, width=75%]
 
 == Cleaning Up
 
