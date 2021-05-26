@@ -1,2 +1,0 @@
-:version: 6.2
-:imageVersion: 6.2.RC1
