@@ -33,7 +33,7 @@ A CloudFormation template is used to deploy Aqua Enterprise. This can be done ei
 
 . Login to the Aqua Registry with your Aqua credentials:
 +
-[source,options="nowrap"]
+[source,options="nowrap",subs="attributes"]
 ----
  docker login registry.aquasec.com -u <AQUA_USERNAME> -p <AQUA_PASSWORD>
 ----
@@ -146,7 +146,7 @@ The Aqua Server and Gateway are deployed on a given ECS EC2 cluster. In multi-cl
 
 . Copy the following command:
 +
-[source,options="nowrap"]
+[source,options="nowrap",subs="attributes"]
 ----
 aws –region us-east-1 cloudformation create-stack –capabilities CAPABILITY_NAMED_IAM –stack-name aqua-ec2 –template-body file://aquaEnforcer.yaml \
 –parameters ParameterKey=AquaGatewayAddress,ParameterValue=xxxxx \
@@ -158,7 +158,7 @@ ParameterKey=ECSClusterName,ParameterValue=xxxxx
 
 . Set the parameters as follows:
 +
-[source,options="nowrap"]
+[source,options="nowrap",subs="attributes"]
 ----
 
 AquaGatewayAddress = The Gateway Service DNS name or IP address (IP address with port number)
@@ -189,15 +189,15 @@ Requirements
 
 . Login to the Aqua Registry with your Aqua credentials:
 +
-[source,options="nowrap"]
+[source,options="nowrap",subs="attributes"]
 ----
 docker login registry.aquasec.com -u <AQUA_USERNAME> -p <AQUA_PASSWORD>`
 ----
 . Pull the Aqua Scanner image.
 +
-[source,options="nowrap"]
+[source,options="nowrap",subs="attributes"]
 ----
-docker pull registry.aquasec.com/scanner:6.2.preview6
+docker pull registry.aquasec.com/scanner:{imageVersion}
 ----
 . Push scanner image to ECR.
 
@@ -213,7 +213,7 @@ docker pull registry.aquasec.com/scanner:6.2.preview6
 
 . Copy the following command:
 +
-[source,options="nowrap"]
+[source,options="nowrap",subs="attributes"]
 ----
 
 aws –region us-east-1 cloudformation create-stack –capabilities CAPABILITY_NAMED_IAM –stack-name aqua-scanner –template-body file://aquaScanner.yaml \
@@ -227,7 +227,7 @@ ParameterKey=ECSClusterName,ParameterValue=xxxxx
 
 . Set the parameters as follows:
 +
-[source,options="nowrap"]
+[source,options="nowrap",subs="attributes"]
 ----
 
 AquaServerAddress = The Server DNS name or IP address (IP address with port number)
