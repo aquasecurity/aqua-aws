@@ -34,7 +34,7 @@ A CloudFormation template is used to deploy Aqua Enterprise. This can be done ei
 
 . Login to the Aqua Registry with your Aqua credentials:
 +
-[source,options="nowrap"]
+[source,options="nowrap",subs="attributes"]
 ----
  docker login registry.aquasec.com -u <AQUA_USERNAME> -p <AQUA_PASSWORD>
 ----
@@ -98,11 +98,11 @@ For an active-active Server configuration select the ActiveActive parameter valu
 
 == Split DB deployment
 
-Having a seprate DB for audit events is an optional parameter. Select Yes for AuditRDS parameter if you would like to create a separate RDS instance otherwise select No to use single RDS instance both. Default value for AuditRDS (or split DB) is No.
+Having a seprate DB for audit events is an optional parameter. Select "Yes" for AuditRDS parameter if you would like to create a separate RDS instance otherwise select "No" to use single RDS instance for both. Default value for AuditRDS (or split DB) is No.
 
 == External DB (Managed DB)
 
-If you have an existing PostgreSQL database and want to use the same for aqua deployment, use the cloudformation template aquaFargate-external.yaml.
+If you have an existing PostgreSQL database and want to use the same for aqua deployment, use the cloudformation template aquaEcs-external.yaml.
 
 == Version upgrade
 
@@ -131,7 +131,7 @@ The Aqua Server and Gateway are deployed on a given ECS EC2 cluster. In multi-cl
 
 . Pull the Aqua Enforcer image:
 
-   docker pull registry.aquasec.com/enforcer:6.2.preview6
+   docker pull registry.aquasec.com/enforcer:{imageVersion}
 
 . Push enforcer image to ECR.
 
@@ -147,7 +147,7 @@ The Aqua Server and Gateway are deployed on a given ECS EC2 cluster. In multi-cl
 
 . Copy the following command:
 +
-[source,options="nowrap"]
+[source,options="nowrap",subs="attributes"]
 ----
 aws –region us-east-1 cloudformation create-stack –capabilities CAPABILITY_NAMED_IAM –stack-name aqua-ec2 –template-body file://aquaEnforcer.yaml \
 –parameters ParameterKey=AquaGatewayAddress,ParameterValue=xxxxx \
@@ -158,7 +158,7 @@ ParameterKey=ECSClusterName,ParameterValue=xxxxx
 
 . Set the parameters as follows:
 +
-[source,options="nowrap"]
+[source,options="nowrap",subs="attributes"]
 ----
 AquaGatewayAddress = The Gateway Service DNS name or IP address (IP address with port number)
 AquaToken = Token from existing Aqua Enforcer group of the Aqua Server
@@ -187,15 +187,15 @@ Requirements
 
 . Login to the Aqua Registry with your Aqua credentials:
 +
-[source,options="nowrap"]
+[source,options="nowrap",subs="attributes"]
 ----
 docker login registry.aquasec.com -u <AQUA_USERNAME> -p <AQUA_PASSWORD>`
 ----
 . Pull the Aqua Scanner image.
 +
-[source,options="nowrap"]
+[source,options="nowrap",subs="attributes"]
 ----
-docker pull registry.aquasec.com/scanner:6.2.preview6
+docker pull registry.aquasec.com/scanner:{imageVersion}
 ----
 . Push scanner image to ECR.
 
@@ -211,7 +211,7 @@ docker pull registry.aquasec.com/scanner:6.2.preview6
 
 . Copy the following command:
 +
-[source,options="nowrap"]
+[source,options="nowrap",subs="attributes"]
 ----
 aws –region us-east-1 cloudformation create-stack –capabilities CAPABILITY_NAMED_IAM –stack-name aqua-scanner –template-body file://aquaScanner.yaml \
 –parameters ParameterKey=AquaServerAddress,ParameterValue=xxxxx \
@@ -223,7 +223,7 @@ ParameterKey=ECSClusterName,ParameterValue=xxxxx
 
 . Set the parameters as follows:
 +
-[source,options="nowrap"]
+[source,options="nowrap",subs="attributes"]
 ----
 AquaServerAddress = The Server DNS name or IP address (IP address with port number)
 AquaScannerUserName = The Scanner user name from Aqua server
@@ -234,13 +234,3 @@ ECSClusterName = The existing ECS cluster name
 . Run the AWS create-stack CLI command.
 
 It will deploy Aqua Scanner in your desired cluster and the newly deployed scanner will get add to the existing Aqua server.
-
-
-
-
-
-
-
-== Ops Manual
-:disclaimer: Don't pet the wild Wolpertingers. We're not responsible for any loss of hair, chocolate, or purple socks.
-:url-repo: https://github.com/asciidoctor/asciidoctor
