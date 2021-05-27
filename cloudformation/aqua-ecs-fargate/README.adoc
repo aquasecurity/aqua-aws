@@ -56,21 +56,21 @@ When completed, you can obtain the DNS name of the Aqua Server UI from the conso
 [source,options="nowrap",subs="attributes"]
 ----
 aws --region us-east-1 cloudformation create-stack --capabilities CAPABILITY_NAMED_IAM --stack-name aqua-fargate --template-body file://aquaFargate.yaml \
---parameters ParameterKey==AquaConsoleAccess,ParameterValue==x.x.x.x/x \
-ParameterKey==AquaServerImage,ParameterValue==xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:server-x.x \
-ParameterKey==AquaGatewayImage,ParameterValue==xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:gateway-x.x \
-ParameterKey==ClusterName,ParameterValue==xxxx \
-ParameterKey==EcsInstanceSubnets,ParameterValue==\"subnet-xxxx,subnet-xxxx\" \
-ParameterKey==AuditRdsInstanceClass,ParameterValue==db.t3.medium \
-ParameterKey==MultiAzDatabase,ParameterValue==false \
-ParameterKey==RdsInstanceClass,ParameterValue==db.t3.medium \
-ParameterKey==RdsStorage,ParameterValue==50 \
-ParameterKey==VpcCidr,ParameterValue==x.x.x.x/x \
-ParameterKey==VpcId,ParameterValue==vpc-xxxx \
-ParameterKey==LbSubnets,ParameterValue==\"subnet-xxxx,subnet-xxxx\" \
-ParameterKey==LBScheme,ParameterValue==\"internet-facing\" 
-ParameterKey==SSLCert,ParameterValue==\"arn:aws:acm:us-east-1:1234567890:certificate/xxxxxxxxxxxx\"
-ParameterKey==ActiveActive,ParameterValue==\"fasle\"
+--parameters ParameterKey=AquaConsoleAccess,ParameterValue=x.x.x.x/x \
+ParameterKey=AquaServerImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:server-x.x \
+ParameterKey=AquaGatewayImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:gateway-x.x \
+ParameterKey=ClusterName,ParameterValue=xxxx \
+ParameterKey=EcsInstanceSubnets,ParameterValue=\"subnet-xxxx,subnet-xxxx\" \
+ParameterKey=AuditRdsInstanceClass,ParameterValue=db.t3.medium \
+ParameterKey=MultiAzDatabase,ParameterValue=false \
+ParameterKey=RdsInstanceClass,ParameterValue=db.t3.medium \
+ParameterKey=RdsStorage,ParameterValue=50 \
+ParameterKey=VpcCidr,ParameterValue=x.x.x.x/x \
+ParameterKey=VpcId,ParameterValue=vpc-xxxx \
+ParameterKey=LbSubnets,ParameterValue=\"subnet-xxxx,subnet-xxxx\" \
+ParameterKey=LBScheme,ParameterValue=\"internet-facing\"
+ParameterKey=SSLCert,ParameterValue=\"arn:aws:acm:us-east-1:1234567890:certificate/xxxxxxxxxxxx\"
+ParameterKey=ActiveActive,ParameterValue=\"fasle\"
 ----
 
 . Set the parameters as follows:
@@ -86,7 +86,7 @@ For Active-Active configuration select option yes in activeactive parameter whil
 
 == Split DB deployment
 
-Having a seprate DB for audit events is an optional parameter. Select Yes for AuditRDS parameter if you would like to create a separate RDS instance otherwise select No to use single RDS instance both. Default value for AuditRDS (or split DB) is No. 
+Having a seprate DB for audit events is an optional parameter. Select Yes for AuditRDS parameter if you would like to create a separate RDS instance otherwise select No to use single RDS instance both. Default value for AuditRDS (or split DB) is No.
 
 == External DB (Managed DB)
 
@@ -95,7 +95,7 @@ If you have an existing PostgreSQL database and want to use the same for aqua de
 == Microenforcer Deployment
 
 AWS Fargate is a Container as a Service (CaaS) enviornment and you can deploy aqua microenforcer to provide runtime security to the containers deployed in AWS Fargate. Please refer to the the microenforcer docuemntation for more details.
-https://docs.aquasec.com/v{imageVersion}/docs/microenforcer
+https://docs.aquasec.com/v{version}/docs/microenforcer
 
 == Version upgrade
 
