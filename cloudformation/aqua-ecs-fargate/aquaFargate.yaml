@@ -201,8 +201,7 @@ Resources:
               - Effect: "Allow"
                 Action:
                   - "logs:*"
-                Resource: "*"              
-                        
+                Resource: "*"
   RandomStringLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -355,10 +354,7 @@ Resources:
         MaximumPercent: '200'
         MinimumHealthyPercent: '100'
       LoadBalancers:
-        - ContainerName: !Join
-            - '-'
-            - - !Ref ECSCluster
-              - aqua-console
+        - ContainerName: !Join ["-", ["aqua-console", !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
           ContainerPort: '8080'
           TargetGroupArn: !Ref AquaConsoleTargetGroup
         - ContainerName: !Join ["-", ["aqua-console", !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
@@ -551,20 +547,13 @@ Resources:
             - Name: SCALOCK_DBNAME
               Value: scalock
             - Name: SCALOCK_DBHOST
-              Value: !GetAtt
-                - RdsInstance
-                - Endpoint.Address
+              Value: !GetAtt RdsInstance.Endpoint.Address
             - Name: SCALOCK_AUDIT_DBNAME
               Value: slk_audit
             - Name: SCALOCK_AUDIT_DBHOST
               Value: !If [CreateAuditrds, !GetAtt AuditRdsInstance.Endpoint.Address, !GetAtt RdsInstance.Endpoint.Address]
             - Name: AQUA_CONSOLE_SECURE_ADDRESS
-              Value: !Join
-                - ''
-                - - !GetAtt
-                    - AquaNlb
-                    - DNSName
-                  - ':8443'
+              Value: !Join ["", [!GetAtt AquaNlb.DNSName, ':8443']]
   AquaGatewayService:
     Type: 'AWS::ECS::Service'
     DependsOn:
@@ -691,10 +680,7 @@ Resources:
                 Resource:
                   - !Ref SecretP
                   - !Ref SecretU
-        - PolicyName: !Join
-            - '-'
-            - - !Ref ECSCluster
-              - KMSPermisions
+        - PolicyName: !Join ["-", ["KMSPermisions", !GetAtt RandomString.RandomString]]
           PolicyDocument:
             Version: 2012-10-17
             Statement:
@@ -713,7 +699,11 @@ Resources:
     Properties:
       LogGroupName: !Join ['-', ['/aqua/gateway', !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
       RetentionInDays: 30
-
+  AquaEnforcerLogs:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      LogGroupName: !Join ['-', ['/aqua/enforcer', !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
+      RetentionInDays: 30
   AquaNlb:
     Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
     Properties:
@@ -750,28 +740,27 @@ Resources:
       PolicyDocument:
         Version: '2008-10-17'
         Statement:
-        - Sid: ELBAccessLogselbacc
-          Effect: Allow
-          Resource: !Join ['', [!GetAtt LBLogsStoreBucket.Arn, /*]]
-          Principal:
-            AWS: !Join ['', ['arn:aws:iam::', !Ref 'AWS::AccountId', ':root']]
-          Action: ['s3:PutObject']
-        - Sid: ELBAccessLogsServiceACL
-          Effect: Allow
-          Resource: !GetAtt LBLogsStoreBucket.Arn
-          Principal:
-            Service: delivery.logs.amazonaws.com
-          Action: ['s3:GetBucketAcl']
-        - Sid: ELBAccessLogsServicePut
-          Effect: Allow
-          Resource: !Join ['', [!GetAtt LBLogsStoreBucket.Arn, /*]]
-          Principal:
-            Service: delivery.logs.amazonaws.com
-          Action: ['s3:PutObject']
-          Condition:
-            StringEquals:
-              s3:x-amz-acl: bucket-owner-full-control
-
+          - Sid: ELBAccessLogselbacc
+            Effect: Allow
+            Resource: !Join ['', [!GetAtt LBLogsStoreBucket.Arn, /*]]
+            Principal:
+              AWS: !Join ['', ['arn:aws:iam::', !Ref 'AWS::AccountId', ':root']]
+            Action: ['s3:PutObject']
+          - Sid: ELBAccessLogsServiceACL
+            Effect: Allow
+            Resource: !GetAtt LBLogsStoreBucket.Arn
+            Principal:
+              Service: delivery.logs.amazonaws.com
+            Action: ['s3:GetBucketAcl']
+          - Sid: ELBAccessLogsServicePut
+            Effect: Allow
+            Resource: !Join ['', [!GetAtt LBLogsStoreBucket.Arn, /*]]
+            Principal:
+              Service: delivery.logs.amazonaws.com
+            Action: ['s3:PutObject']
+            Condition:
+              StringEquals:
+                s3:x-amz-acl: bucket-owner-full-control
   RdsInstance:
     Type: 'AWS::RDS::DBInstance'
     DependsOn:
@@ -790,8 +779,8 @@ Resources:
       DeletionProtection: False
       Engine: postgres
       EngineVersion: 11.9
-      MasterUsername: !Join [ '', [ '{{resolve:secretsmanager:', !Ref SecretU, ':SecretString}}' ] ]
-      MasterUserPassword: !Join [ '', [ '{{resolve:secretsmanager:', !Ref SecretP, ':SecretString}}' ] ]
+      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref SecretU, ':SecretString}}' ]]
+      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref SecretP, ':SecretString}}' ]]
       MultiAZ: !Ref MultiAzDatabase
       StorageType: gp2
       StorageEncrypted: True
@@ -841,10 +830,7 @@ Resources:
     Type: AWS::SecretsManager::Secret
     Properties:
       Description: Aqua RDS password
-      Name: !Join
-        - '/'
-        - - !Ref ECSCluster
-          - AquaRdsPassword
+      Name: !Join ["/", ["AquaRdsPassword", !GetAtt RandomString.RandomString]]
       GenerateSecretString:
         PasswordLength: 16
         ExcludeCharacters: '"@/\'
@@ -852,10 +838,7 @@ Resources:
     Type: AWS::SecretsManager::Secret
     Properties:
       Description: Aqua RDS Username
-      Name: !Join
-        - '/'
-        - - !Ref ECSCluster
-          - AquaRdsUsername
+      Name: !Join ["/", ["AquaRdsUsername", !GetAtt RandomString.RandomString]]
       SecretString: 'aquaadmin'
 Outputs:
   AquaConsole:
