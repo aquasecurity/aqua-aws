@@ -245,7 +245,6 @@ Resources:
       Type: application
   AquaConsoleTaskDefinition:
     Type: 'AWS::ECS::TaskDefinition'
-    Condition: NotCreateActiveActive
     DependsOn:
       - AquaEcsTaskRole
       - RdsInstance
@@ -320,19 +319,18 @@ Resources:
             - Name: SCALOCK_AUDIT_DBHOST
               Value: !If [CreateAuditrds, !GetAtt AuditRdsInstance.Endpoint.Address, !GetAtt RdsInstance.Endpoint.Address]
             - Name: AQUA_PUBSUB_DBSSL
-              Value: require
+              Value: !If [CreateActiveActive, require, !Ref "AWS::NoValue"]
             - Name: AQUA_PUBSUB_DBNAME
-              Value: pubsub
+              Value: !If [CreateActiveActive, pubsub, !Ref "AWS::NoValue"]
             - Name: AQUA_PUBSUB_DBHOST
-              Value: !GetAtt RdsInstance.Endpoint.Address
+              Value: !If [CreateActiveActive, !GetAtt RdsInstance.Endpoint.Address, !Ref "AWS::NoValue"]
             - Name: AQUA_CLUSTER_MODE
-              Value: active-active
+              Value: !If [CreateActiveActive, active-active, !Ref "AWS::NoValue"]
       TaskRoleArn: !Ref AquaEcsTaskRole
-  AquaConsoleServiceActiveActive:
+  AquaConsoleService:
     Type: 'AWS::ECS::Service'
-    Condition: CreateActiveActive	
     DependsOn:
-      - AquaConsoleTaskDefinitionActiveActive
+      - AquaConsoleTaskDefinition
       - AquaConsoleListener
       - AquaConsoleGrpcListener
     Properties:
@@ -356,7 +354,7 @@ Resources:
         - ContainerName: !Join ["-", ["aqua-console", !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
           ContainerPort: '8443'
           TargetGroupArn: !Ref AquaConsoleGrpcTargetGroup
-      TaskDefinition: !Ref AquaConsoleTaskDefinitionActiveActive
+      TaskDefinition: !Ref AquaConsoleTaskDefinition
   AquaConsoleListener:
     Type: 'AWS::ElasticLoadBalancingV2::Listener'
     DependsOn:
