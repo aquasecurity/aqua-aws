@@ -544,7 +544,7 @@ Resources:
             - Name: SCALOCK_AUDIT_DBHOST
               Value: !If [CreateAuditrds, !GetAtt AuditRdsInstance.Endpoint.Address, !GetAtt RdsInstance.Endpoint.Address]
             - Name: AQUA_CONSOLE_SECURE_ADDRESS
-              Value: !Join ["", [!GetAtt AquaNlb.DNSName, ':8443']
+              Value: !Join ["", [!GetAtt AquaNlb.DNSName, ':8443']]
   AquaGatewayService:
     Type: 'AWS::ECS::Service'
     DependsOn:
