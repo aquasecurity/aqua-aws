@@ -261,11 +261,11 @@ Resources:
   AquaConsoleTaskDefinition:
     Type: 'AWS::ECS::TaskDefinition'
     DependsOn:
+      - SecretU
+      - SecretP
       - AquaEcsTaskRole
       - RdsInstance
       - AquaConsoleLogs
-      - Secret0
-      - SecretUsername
     Properties:
       Family: !Join ["-", ["aqua-console", !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
       RequiresCompatibilities:
@@ -302,19 +302,19 @@ Resources:
           Essential: 'true'
           Secrets:
             - Name: SCALOCK_DBPASSWORD
-              ValueFrom: !Ref Secret0
+              ValueFrom: !Ref SecretP
             - Name: SCALOCK_AUDIT_DBPASSWORD
-              ValueFrom: !Ref Secret0
+              ValueFrom: !Ref SecretP
             - Name: SCALOCK_DBUSER
-              ValueFrom: !Ref SecretUsername
+              ValueFrom: !Ref SecretU
             - Name: SCALOCK_AUDIT_DBUSER
-              ValueFrom: !Ref SecretUsername
+              ValueFrom: !Ref SecretU
             - Name: BATCH_INSTALL_TOKEN
               ValueFrom: !Ref Secret1
             - Name: AQUA_PUBSUB_DBPASSWORD
-              ValueFrom: !Ref Secret0
+              ValueFrom: !Ref SecretP
             - Name: AQUA_PUBSUB_DBUSER
-              ValueFrom: !Ref SecretUsername
+              ValueFrom: !Ref SecretU
           Environment:
             - Name: SCALOCK_LOG_LEVEL
               Value: DEBUG
@@ -512,10 +512,11 @@ Resources:
   AquaGatewayTaskDefinition:
     Type: 'AWS::ECS::TaskDefinition'
     DependsOn:
+      - SecretU
+      - SecretP
       - AquaEcsTaskRole
       - RdsInstance
       - AquaGatewayLogs
-      - Secret0
     Properties:
       Family: !Join ["-", ["aqua-gateway", !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
       TaskRoleArn: !Ref AquaEcsTaskRole
@@ -547,13 +548,13 @@ Resources:
               awslogs-stream-prefix: aquaGateway
           Secrets:
             - Name: SCALOCK_DBPASSWORD
-              ValueFrom: !Ref Secret0
+              ValueFrom: !Ref SecretP
             - Name: SCALOCK_AUDIT_DBPASSWORD
-              ValueFrom: !Ref Secret0
+              ValueFrom: !Ref SecretP
             - Name: SCALOCK_DBUSER
-              ValueFrom: !Ref SecretUsername
+              ValueFrom: !Ref SecretU
             - Name: SCALOCK_AUDIT_DBUSER
-              ValueFrom: !Ref SecretUsername
+              ValueFrom: !Ref SecretU
           Environment:
             - Name: SCALOCK_LOG_LEVEL
               Value: DEBUG
@@ -811,9 +812,9 @@ Resources:
                 Action:
                   - 'secretsmanager:GetSecretValue'
                 Resource:
-                  - !Ref Secret0
+                  - !Ref SecretP
                   - !Ref Secret1
-                  - !Ref SecretUsername
+                  - !Ref SecretU
         - PolicyName: !Join ["-", ["KMSPermisions", !GetAtt RandomString.RandomString]]
           PolicyDocument:
             Version: 2012-10-17
@@ -837,7 +838,7 @@ Resources:
     Type: 'AWS::Logs::LogGroup'
     Properties:
       LogGroupName: !Join ['-', ['/aqua/enforcer', !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
-      RetentionInDays: 30    
+      RetentionInDays: 30
   LBLogsStoreBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -901,8 +902,8 @@ Resources:
       DeletionProtection: False
       Engine: postgres
       EngineVersion: 11.9
-      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref SecretUsername, ':SecretString}}' ]]
-      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref Secret0, ':SecretString}}' ]]
+      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref SecretU, ':SecretString}}' ]]
+      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref SecretP, ':SecretString}}' ]]
       MultiAZ: !Ref MultiAzDatabase
       StorageType: gp2
       StorageEncrypted: True
@@ -926,8 +927,8 @@ Resources:
       DeletionProtection: False
       Engine: postgres
       EngineVersion: 11.9
-      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref SecretUsername, ':SecretString}}' ]]
-      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref Secret0, ':SecretString}}' ]]
+      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref SecretU, ':SecretString}}' ]]
+      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref SecretP, ':SecretString}}' ]]
       MultiAZ: !Ref MultiAzDatabase
       StorageType: gp2
       StorageEncrypted: True
@@ -947,7 +948,7 @@ Resources:
           FromPort: '5432'
           ToPort: '5432'
           SourceSecurityGroupId: !Ref EcsSecurityGroupId
-  Secret0:
+  SecretP:
     Type: AWS::SecretsManager::Secret
     Properties:
       Description: Aqua RDS password
@@ -955,7 +956,7 @@ Resources:
       GenerateSecretString:
         PasswordLength: 16
         ExcludeCharacters: '"@/\'
-  SecretUsername:
+  SecretU:
     Type: AWS::SecretsManager::Secret
     Properties:
       Description: Aqua RDS Username
