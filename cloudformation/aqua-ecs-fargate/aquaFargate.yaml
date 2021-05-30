@@ -175,12 +175,11 @@ Parameters:
     AllowedValues:
       - 'true'
       - 'false'
-
 Conditions:
   CreateActiveActive: !Equals [ !Ref ActiveActive, 'true' ]
   NotCreateActiveActive: !Equals [ !Ref ActiveActive, 'false' ]
   CreateAuditrds: !Equals [!Ref AuditRDS, 'Yes']
-  ReplaceAuditrds: !Equals [!Ref AuditRDS, 'No']  
+  ReplaceAuditrds: !Equals [!Ref AuditRDS, 'No']
 Resources:
   LambdaExecutionRole:
     Type: AWS::IAM::Role
@@ -257,8 +256,8 @@ Resources:
       - AquaEcsTaskRole
       - RdsInstance
       - AquaConsoleLogs
-      - Secret0
-      - SecretUsername
+      - SecretP
+      - SecretU
     Properties:
       Family: !Join ["-", ["aqua-console", !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
       RequiresCompatibilities:
@@ -290,17 +289,17 @@ Resources:
               awslogs-stream-prefix: aquaConsole
           Secrets:
             - Name: SCALOCK_DBPASSWORD
-              ValueFrom: !Ref Secret0
+              ValueFrom: !Ref SecretP
             - Name: SCALOCK_AUDIT_DBPASSWORD
-              ValueFrom: !Ref Secret0
+              ValueFrom: !Ref SecretP
             - Name: SCALOCK_DBUSER
-              ValueFrom: !Ref SecretUsername
+              ValueFrom: !Ref SecretU
             - Name: SCALOCK_AUDIT_DBUSER
-              ValueFrom: !Ref SecretUsername
+              ValueFrom: !Ref SecretU
             - Name: AQUA_PUBSUB_DBPASSWORD
-              ValueFrom: !Ref Secret0
+              ValueFrom: !Ref SecretP
             - Name: AQUA_PUBSUB_DBUSER
-              ValueFrom: !Ref SecretUsername  
+              ValueFrom: !Ref SecretU
           Environment:
             - Name: SCALOCK_LOG_LEVEL
               Value: DEBUG
@@ -333,7 +332,7 @@ Resources:
             - Name: AQUA_PUBSUB_DBHOST
               Value: !If [CreateActiveActive, !GetAtt RdsInstance.Endpoint.Address, !Ref "AWS::NoValue"]
             - Name: AQUA_CLUSTER_MODE
-              Value: !If [CreateActiveActive, active-active, !Ref "AWS::NoValue"]  
+              Value: !If [CreateActiveActive, active-active, !Ref "AWS::NoValue"]
       TaskRoleArn: !Ref AquaEcsTaskRole
   AquaConsoleService:
     Type: 'AWS::ECS::Service'
@@ -426,10 +425,7 @@ Resources:
       HealthCheckProtocol: TCP
       HealthyThresholdCount: 3
       HealthCheckPort: 8443
-      Name: !Join
-        - '-'
-        - - aqua-console-grpc
-          - !GetAtt RandomString.RandomString
+      Name: !Join ["-", ["aqua-console-grpc", !GetAtt RandomString.RandomString]]
       Port: '8443'
       Protocol: TCP
       TargetGroupAttributes:
@@ -437,7 +433,6 @@ Resources:
           Value: '60'
       UnhealthyThresholdCount: 3
       VpcId: !Ref VpcId
-
   AquaGatewayListener:
     Type: 'AWS::ElasticLoadBalancingV2::Listener'
     DependsOn:
@@ -501,7 +496,7 @@ Resources:
       - AquaEcsTaskRole
       - RdsInstance
       - AquaGatewayLogs
-      - Secret0
+      - SecretP
     Properties:
       Family: !Join ["-", ["aqua-gateway", !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
       NetworkMode: awsvpc
@@ -537,13 +532,13 @@ Resources:
               awslogs-stream-prefix: aquaGateway
           Secrets:
             - Name: SCALOCK_DBPASSWORD
-              ValueFrom: !Ref Secret0
+              ValueFrom: !Ref SecretP
             - Name: SCALOCK_AUDIT_DBPASSWORD
-              ValueFrom: !Ref Secret0
+              ValueFrom: !Ref SecretP
             - Name: SCALOCK_DBUSER
-              ValueFrom: !Ref SecretUsername
+              ValueFrom: !Ref SecretU
             - Name: SCALOCK_AUDIT_DBUSER
-              ValueFrom: !Ref SecretUsername
+              ValueFrom: !Ref SecretU
           Environment:
             - Name: SCALOCK_LOG_LEVEL
               Value: DEBUG
@@ -571,7 +566,7 @@ Resources:
                     - DNSName
                   - ':8443'
   AquaGatewayService:
-    Type: 'AWS::ECS::Service'   
+    Type: 'AWS::ECS::Service'
     DependsOn:
       - AquaGatewayTaskDefinition
       - AquaNlb
@@ -686,10 +681,7 @@ Resources:
                   - 'logs:TagLogGroup'
                 Resource: '*'
               - !Ref 'AWS::NoValue'
-        - PolicyName: !Join
-            - '-'
-            - - !Ref ECSCluster
-              - AquaSecretsManagerPolicy
+        - PolicyName:  !Join ["-", ["AquaSecretsManagerPolicy", !GetAtt RandomString.RandomString]]
           PolicyDocument:
             Version: 2012-10-17
             Statement:
@@ -697,8 +689,8 @@ Resources:
                 Action:
                   - 'secretsmanager:GetSecretValue'
                 Resource:
-                  - !Ref Secret0
-                  - !Ref SecretUsername
+                  - !Ref SecretP
+                  - !Ref SecretU
         - PolicyName: !Join
             - '-'
             - - !Ref ECSCluster
@@ -798,8 +790,8 @@ Resources:
       DeletionProtection: False
       Engine: postgres
       EngineVersion: 11.9
-      MasterUsername: !Join [ '', [ '{{resolve:secretsmanager:', !Ref SecretUsername, ':SecretString}}' ] ]
-      MasterUserPassword: !Join [ '', [ '{{resolve:secretsmanager:', !Ref Secret0, ':SecretString}}' ] ]
+      MasterUsername: !Join [ '', [ '{{resolve:secretsmanager:', !Ref SecretU, ':SecretString}}' ] ]
+      MasterUserPassword: !Join [ '', [ '{{resolve:secretsmanager:', !Ref SecretP, ':SecretString}}' ] ]
       MultiAZ: !Ref MultiAzDatabase
       StorageType: gp2
       StorageEncrypted: True
@@ -823,8 +815,8 @@ Resources:
       DeletionProtection: False
       Engine: postgres
       EngineVersion: 11.9
-      MasterUsername: !Join [ '', [ '{{resolve:secretsmanager:', !Ref SecretUsername, ':SecretString}}' ] ]
-      MasterUserPassword: !Join [ '', [ '{{resolve:secretsmanager:', !Ref Secret0, ':SecretString}}' ] ]
+      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref SecretU, ':SecretString}}' ]]
+      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref SecretP, ':SecretString}}' ]]
       MultiAZ: !Ref MultiAzDatabase
       StorageType: gp2
       StorageEncrypted: True
@@ -845,7 +837,7 @@ Resources:
           ToPort: '5432'
           SourceSecurityGroupId: !Ref AquaFargateSecurityGroup
   #Secrets
-  Secret0:
+  SecretP:
     Type: AWS::SecretsManager::Secret
     Properties:
       Description: Aqua RDS password
@@ -856,7 +848,7 @@ Resources:
       GenerateSecretString:
         PasswordLength: 16
         ExcludeCharacters: '"@/\'
-  SecretUsername:
+  SecretU:
     Type: AWS::SecretsManager::Secret
     Properties:
       Description: Aqua RDS Username

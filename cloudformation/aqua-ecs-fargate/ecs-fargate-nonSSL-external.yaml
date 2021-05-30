@@ -98,7 +98,7 @@ Parameters:
     Type: String  
       
   AuditRDS:
-    Description: Select Yes to create a separate Manage RDS instance for Audit
+    Description: Select Yes if you are having a seperate RDS endpoing for Audit
     Default: 'No'
     Type: String
     AllowedValues: ['Yes', 'No']
@@ -114,8 +114,7 @@ Parameters:
   AuditDBPassword:
     NoEcho: true
     Description: Enter Audit DB password
-    Type: String    
-
+    Type: String
   ClusterName:
     Description: Name of ecs cluster to be created
     Type: String
@@ -129,16 +128,12 @@ Parameters:
     AllowedValues:
       - 'true'
       - 'false'
-      
 Conditions:
   CreateActiveActive: !Equals [ !Ref ActiveActive, 'true' ]
   NotCreateActiveActive: !Equals [ !Ref ActiveActive, 'false' ]
   CreateAuditrds: !Equals [!Ref AuditRDS, 'Yes']
   ReplaceAuditrds: !Equals [!Ref AuditRDS, 'No']
-
-  
-  
-Resources:  
+Resources:
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -159,8 +154,7 @@ Resources:
               - Effect: "Allow"
                 Action:
                   - "logs:*"
-                Resource: "*"              
-                        
+                Resource: "*"
   RandomStringLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -190,7 +184,7 @@ Resources:
    Type: AWS::CloudFormation::CustomResource
    Properties:
      Length: 5
-     ServiceToken: !GetAtt RandomStringLambdaFunction.Arn   
+     ServiceToken: !GetAtt RandomStringLambdaFunction.Arn
   # ECS Cluster
   ECSCluster:
     Type: AWS::ECS::Cluster
@@ -213,7 +207,7 @@ Resources:
       Type: application
   AquaConsoleTaskDefinition:
     Type: 'AWS::ECS::TaskDefinition'
-    DependsOn: 
+    DependsOn:
       - SecretU
       - SecretP
       - AquaEcsTaskRole
@@ -265,7 +259,7 @@ Resources:
             - Name: AQUA_PUBSUB_DBPASSWORD
               ValueFrom: !Ref SecretP
             - Name: AQUA_PUBSUB_DBUSER
-              ValueFrom: !Ref SecretU  
+              ValueFrom: !Ref SecretU
           Environment:
             - Name: SCALOCK_LOG_LEVEL
               Value: DEBUG
@@ -472,7 +466,7 @@ Resources:
       VpcId: !Ref VpcId
   AquaGatewayTaskDefinition:
     Type: 'AWS::ECS::TaskDefinition'
-    DependsOn: 
+    DependsOn:
       - SecretU
       - SecretP
       - AquaEcsTaskRole
@@ -550,7 +544,7 @@ Resources:
                     - DNSName
                   - ':8443'
   AquaGatewayService:
-    Type: 'AWS::ECS::Service'   
+    Type: 'AWS::ECS::Service'
     DependsOn:
       - AquaGatewayTaskDefinition
       - AquaNlb
@@ -636,7 +630,6 @@ Resources:
           FromPort: 8080
           ToPort: 8080
           SourceSecurityGroupId: !Ref AquaConsoleSecurityGroup
-
   AquaEcsTaskRole:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -690,8 +683,12 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - 'secretsmanager:*'
-                Resource: '*'
+                  - 'secretsmanager:GetSecretValue'
+                Resource:
+                  - !Ref SecretP
+                  - !Ref SecretU
+                  - !Ref SecretAuditU
+                  - !Ref SecretAuditP
         - PolicyName: !Join
             - '-'
             - - !Ref ECSCluster
@@ -713,8 +710,7 @@ Resources:
         - '/'
         - - !Ref ECSCluster
           - AquaRdsUsername
-      SecretString: !Ref AquaDBUserName  
-
+      SecretString: !Ref AquaDBUserName
   SecretP:
     Type: AWS::SecretsManager::Secret
     Properties:
@@ -723,8 +719,7 @@ Resources:
         - '/'
         - - !Ref ECSCluster
           - AquaRdsPassword
-      SecretString: !Ref AquaDBPassword 
-
+      SecretString: !Ref AquaDBPassword
   SecretAuditU:
     Condition: CreateAuditrds
     Type: AWS::SecretsManager::Secret
@@ -734,8 +729,7 @@ Resources:
         - '/'
         - - !Ref ECSCluster
           - AuditRdsUsername
-      SecretString: !Ref AuditDBUserName  
-
+      SecretString: !Ref AuditDBUserName
   SecretAuditP:
     Condition: CreateAuditrds
     Type: AWS::SecretsManager::Secret
@@ -745,8 +739,7 @@ Resources:
         - '/'
         - - !Ref ECSCluster
           - AuditRdsPassword
-      SecretString: !Ref AuditDBPassword                   
-
+      SecretString: !Ref AuditDBPassword
   AquaConsoleLogs:
     Type: 'AWS::Logs::LogGroup'
     Properties:
@@ -819,12 +812,7 @@ Resources:
 Outputs:
   AquaConsole:
     Description: URL to access Aqua Security Console
-    Value: !Join
-      - ''
-      - - 'http://'
-        - !GetAtt
-          - AquaConsoleLB
-          - DNSName
+    Value: !Join ["", ['http://', !GetAtt AquaConsoleLB.DNSName]]
   AquaConsoleGrpcConnection:
     Description: >-
       DNS to server gRPC
@@ -838,12 +826,7 @@ Outputs:
     Description: >-
       Aqua Enforcer gateway startup connection string for use when Enforcers are
       external to VPC.
-    Value: !Join
-      - ''
-      - - !GetAtt
-          - AquaNlb
-          - DNSName
-        - ':3622'
+    Value: !Join [":", [!GetAtt AquaNlb.DNSName, "3662"]]
   AquaEcsTaskRole:
     Description: IAM role assigned to access ECR
     Value: !Ref AquaEcsTaskRole

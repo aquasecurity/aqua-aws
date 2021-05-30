@@ -111,7 +111,7 @@ Parameters:
     Description: Enter Aqua DB password
     Type: String
   AuditRDS:
-    Description: Select Yes to create a separate Manage RDS instance for Audit
+    Description: Select Yes if you are having a seperate RDS endpoing for Audit
     Default: 'No'
     Type: String
     AllowedValues: ['Yes', 'No']
@@ -760,9 +760,14 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - 'secretsmanager:*'
-                Resource: '*'
-        - PolicyName: !Join ["-", ["KMSPermisions", !Join ["-", ["ecstr", !GetAtt RandomString.RandomString]]]]
+                  - 'secretsmanager:GetSecretValue'
+                Resource:
+                  - !Ref SecretP
+                  - !Ref Secret1
+                  - !Ref SecretU
+                  - !Ref SecretAuditU
+                  - !Ref SecretAuditP
+        - PolicyName: !Join ["-", ["KMSPermisions", !GetAtt RandomString.RandomString]]
           PolicyDocument:
             Version: 2012-10-17
             Statement:
