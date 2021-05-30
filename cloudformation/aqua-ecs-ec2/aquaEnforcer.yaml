@@ -82,7 +82,7 @@ Resources:
                 else: # if event["RequestType"] == "Update" or event["RequestType"] == "Delete":
                   physicalResourceId = event["PhysicalResourceId"]
                 cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data, physicalResourceId)
-    SampleString:
+    RandomString:
         Type: AWS::CloudFormation::CustomResource
         Properties:
           Length: 5
@@ -120,7 +120,7 @@ Resources:
               LogConfiguration:
                 LogDriver: awslogs
                 Options:
-                  awslogs-group: !Join ['-', ['/aqua/enforcer', !Join ["-", ["td", !GetAtt SampleString.RandomString]]]]
+                  awslogs-group: !Join ['-', ['/aqua/enforcer', !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
                   awslogs-region: !Ref "AWS::Region"
                   awslogs-stream-prefix: aquaEnforcer
               Environment:
@@ -136,7 +136,7 @@ Resources:
                   Value: !Join 
                     - '-'
                     - - ECS
-                      - !Join ["-", ["aqua-enf-td", !GetAtt SampleString.RandomString]]
+                      - !Join ["-", ["aqua-enf-td", !GetAtt RandomString.RandomString]]
               Image: !Ref AquaEnforcerImage
               Cpu: '512'
           Volumes:
@@ -167,7 +167,7 @@ Resources:
           Family: !Join 
             - '-'
             - - aqua-enforcer
-              - !Join ["-", ["td", !GetAtt SampleString.RandomString]]
+              - !Join ["-", ["td", !GetAtt RandomString.RandomString]]
     AquaEnforcerDaemon:
         DependsOn:
           - AquaEnforcerTaskDefinition
@@ -178,9 +178,9 @@ Resources:
           ServiceName: !Join 
             - '-'
             - - aqua-enforcer
-              - !Join ["-", ["td", !GetAtt SampleString.RandomString]]
+              - !Join ["-", ["td", !GetAtt RandomString.RandomString]]
     AquaEnforcerLogs:
         Type: 'AWS::Logs::LogGroup'
         Properties:
-          LogGroupName: !Join ['-', ['/aqua/enforcer', !Join ["-", ["td", !GetAtt SampleString.RandomString]]]]
+          LogGroupName: !Join ['-', ['/aqua/enforcer', !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
           RetentionInDays: 30      

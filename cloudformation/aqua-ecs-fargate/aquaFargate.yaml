@@ -229,7 +229,7 @@ Resources:
             else: # if event["RequestType"] == "Update" or event["RequestType"] == "Delete":
               physicalResourceId = event["PhysicalResourceId"]
             cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data, physicalResourceId)
-  SampleString:
+  RandomString:
    Type: AWS::CloudFormation::CustomResource
    Properties:
      Length: 5
@@ -238,17 +238,14 @@ Resources:
   ECSCluster:
     Type: AWS::ECS::Cluster
     Properties:
-      ClusterName: !Join ["-", [!Ref ClusterName, !GetAtt SampleString.RandomString]]
+      ClusterName: !Join ["-", [!Ref ClusterName, !GetAtt RandomString.RandomString]]
   # Aqua Console
   AquaConsoleLB:
     Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
     DependsOn:
       - AquaConsoleSecurityGroup
     Properties:
-      Name: !Join
-        - '-'
-        - - !Ref ECSCluster
-          - AquaConsoleLB
+      Name: !Join ["-", ["AquaConsoleLB", !GetAtt RandomString.RandomString]]
       Scheme: !Ref LBScheme
       SecurityGroups:
         - !Ref AquaConsoleSecurityGroup
@@ -264,10 +261,7 @@ Resources:
       - Secret0
       - SecretUsername
     Properties:
-      Family: !Join
-        - '-'
-        - - !Ref ECSCluster
-          - aqua-console
+      Family: !Join ["-", ["aqua-console", !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
       RequiresCompatibilities:
         - FARGATE
       Cpu: '2048'
@@ -275,10 +269,7 @@ Resources:
       NetworkMode: awsvpc
       ExecutionRoleArn: !Ref AquaEcsTaskRole
       ContainerDefinitions:
-        - Name: !Join
-            - '-'
-            - - !Ref ECSCluster
-              - aqua-console
+        - Name: !Join ["-", ["aqua-console", !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
           Image: !Ref AquaServerImage
           Ulimits:
             - Name: nofile
@@ -295,124 +286,7 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Join ['-', ['/aqua/console', !Ref ECSCluster]]
-              awslogs-region: !Ref "AWS::Region"
-              awslogs-stream-prefix: aquaConsole
-          Secrets:
-            - Name: SCALOCK_DBPASSWORD
-              ValueFrom: !Ref Secret0
-            - Name: SCALOCK_AUDIT_DBPASSWORD
-              ValueFrom: !Ref Secret0
-            - Name: SCALOCK_DBUSER
-              ValueFrom: !Ref SecretUsername
-            - Name: SCALOCK_AUDIT_DBUSER
-              ValueFrom: !Ref SecretUsername
-          Environment:
-            - Name: SCALOCK_LOG_LEVEL
-              Value: DEBUG
-            - Name: AQUA_GRPC_MODE
-              Value: 1
-            - Name: AQUA_DOCKERLESS_SCANNING
-              Value: 1
-            - Name: SCALOCK_DBSSL
-              Value: require
-            - Name: SCALOCK_AUDIT_DBSSL
-              Value: require
-            - Name: SCALOCK_DBNAME
-              Value: scalock
-            - Name: BATCH_INSTALL_GATEWAY
-              Value: !GetAtt
-                - AquaNlb
-                - DNSName
-            - Name: SCALOCK_DBHOST
-              Value: !GetAtt
-                - RdsInstance
-                - Endpoint.Address
-            - Name: SCALOCK_AUDIT_DBNAME
-              Value: slk_audit
-            - Name: SCALOCK_AUDIT_DBHOST
-              Value: !If [CreateAuditrds, !GetAtt AuditRdsInstance.Endpoint.Address, !GetAtt RdsInstance.Endpoint.Address]
-      TaskRoleArn: !Ref AquaEcsTaskRole
-  AquaConsoleService:
-    Type: 'AWS::ECS::Service'
-    Condition: NotCreateActiveActive
-    DependsOn:
-      - AquaConsoleTaskDefinition
-      - AquaConsoleListener
-      - AquaConsoleGrpcListener
-    Properties:
-      Cluster: !Ref ECSCluster
-      LaunchType: FARGATE
-      NetworkConfiguration:
-        AwsvpcConfiguration:
-          AssignPublicIp: ENABLED
-          SecurityGroups:
-            - !Ref AquaFargateSecurityGroup
-          Subnets: !Ref EcsInstanceSubnets
-      ServiceName: !Join
-        - '-'
-        - - !Ref ECSCluster
-          - aqua-console
-      DesiredCount: '1'
-      DeploymentConfiguration:
-        MaximumPercent: '200'
-        MinimumHealthyPercent: '100'
-      LoadBalancers:
-        - ContainerName: !Join
-            - '-'
-            - - !Ref ECSCluster
-              - aqua-console
-          ContainerPort: '8080'
-          TargetGroupArn: !Ref AquaConsoleTargetGroup
-        - ContainerName: !Join
-            - '-'
-            - - !Ref ECSCluster
-              - aqua-console
-          ContainerPort: '8443'
-          TargetGroupArn: !Ref AquaConsoleGrpcTargetGroup
-      TaskDefinition: !Ref AquaConsoleTaskDefinition
-  AquaConsoleTaskDefinitionActiveActive:
-    Type: 'AWS::ECS::TaskDefinition'
-    Condition: CreateActiveActive
-    DependsOn:
-      - AquaEcsTaskRole
-      - RdsInstance
-      - AquaConsoleLogs
-      - Secret0
-      - SecretUsername
-    Properties:
-      Family: !Join
-        - '-'
-        - - !Ref ECSCluster
-          - aqua-console
-      RequiresCompatibilities:
-        - FARGATE
-      Cpu: '2048'
-      Memory: '4096'
-      NetworkMode: awsvpc
-      ExecutionRoleArn: !Ref AquaEcsTaskRole
-      ContainerDefinitions:
-        - Name: !Join
-            - '-'
-            - - !Ref ECSCluster
-              - aqua-console
-          Image: !Ref AquaServerImage
-          Ulimits:
-            - Name: nofile
-              SoftLimit: '1048576'
-              HardLimit: '1048576'
-          PortMappings:
-            - ContainerPort: '8080'
-              HostPort: '8080'
-              Protocol: tcp
-            - ContainerPort: '8443'
-              HostPort: '8443'
-              Protocol: tcp
-          Essential: 'true'
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              awslogs-group: !Join ['-', ['/aqua/console', !Ref ECSCluster]]
+              awslogs-group: !Join ['-', ['/aqua/console', !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
               awslogs-region: !Ref "AWS::Region"
               awslogs-stream-prefix: aquaConsole
           Secrets:
@@ -480,10 +354,7 @@ Resources:
           SecurityGroups:
             - !Ref AquaFargateSecurityGroup
           Subnets: !Ref EcsInstanceSubnets
-      ServiceName: !Join
-        - '-'
-        - - !Ref ECSCluster
-          - aqua-console
+      ServiceName: !Join ["-", ["aqua-console", !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
       DesiredCount: '1'
       DeploymentConfiguration:
         MaximumPercent: '200'
@@ -495,10 +366,7 @@ Resources:
               - aqua-console
           ContainerPort: '8080'
           TargetGroupArn: !Ref AquaConsoleTargetGroup
-        - ContainerName: !Join
-            - '-'
-            - - !Ref ECSCluster
-              - aqua-console
+        - ContainerName: !Join ["-", ["aqua-console", !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
           ContainerPort: '8443'
           TargetGroupArn: !Ref AquaConsoleGrpcTargetGroup
       TaskDefinition: !Ref AquaConsoleTaskDefinitionActiveActive
@@ -528,10 +396,7 @@ Resources:
       HealthyThresholdCount: 6
       Matcher:
         HttpCode: '200'
-      Name: !Join
-        - '-'
-        - - !Ref ECSCluster
-          - aqua-console
+      Name: !Join ["-", ["aqua-console", !Join ["-", ["tg", !GetAtt RandomString.RandomString]]]]
       Port: '8080'
       Protocol: HTTP
       TargetGroupAttributes:
@@ -565,10 +430,7 @@ Resources:
       HealthCheckProtocol: TCP
       HealthyThresholdCount: 3
       HealthCheckPort: 8443
-      Name: !Join
-        - '-'
-        - - !Ref ECSCluster
-          - aqua-console-grpc
+      Name: !Join ["-", ["aqua-console-grpc", !GetAtt RandomString.RandomString]]
       Port: '8443'
       Protocol: TCP
       TargetGroupAttributes:
@@ -576,7 +438,6 @@ Resources:
           Value: '60'
       UnhealthyThresholdCount: 3
       VpcId: !Ref VpcId
-
   AquaGatewayListener:
     Type: 'AWS::ElasticLoadBalancingV2::Listener'
     DependsOn:
@@ -612,10 +473,7 @@ Resources:
       HealthyThresholdCount: 3
       UnhealthyThresholdCount: 3
       HealthCheckPort: 8099
-      Name: !Join
-        - '-'
-        - - !Ref ECSCluster
-          - aqua-gateway-ssh
+      Name: !Join ["-", ["aqua-gateway", !Join ["-", ["ssh-tg", !GetAtt RandomString.RandomString]]]]
       Port: '3622'
       Protocol: TCP
       VpcId: !Ref VpcId
@@ -630,10 +488,7 @@ Resources:
       HealthyThresholdCount: 6
       UnhealthyThresholdCount: 6
       HealthCheckPort: 8099
-      Name: !Join
-        - '-'
-        - - !Ref ECSCluster
-          - aqua-gateway-grpc
+      Name: !Join ["-", ["aqua-gateway", !Join ["-", ["grpc-tg", !GetAtt RandomString.RandomString]]]]
       Port: '8443'
       Protocol: TCP
       TargetGroupAttributes:
@@ -648,10 +503,7 @@ Resources:
       - AquaGatewayLogs
       - Secret0
     Properties:
-      Family: !Join
-        - '-'
-        - - !Ref ECSCluster
-          - aqua-gateway
+      Family: !Join ["-", ["aqua-gateway", !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
       NetworkMode: awsvpc
       ExecutionRoleArn: !Ref AquaEcsTaskRole
       RequiresCompatibilities:
@@ -660,10 +512,7 @@ Resources:
       Memory: '4096'
       TaskRoleArn: !Ref AquaEcsTaskRole
       ContainerDefinitions:
-        - Name: !Join
-            - '-'
-            - - !Ref ECSCluster
-              - aqua-gateway
+        - Name: !Join ["-", ["aqua-gateway", !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
           Image: !Ref AquaGatewayImage
           Ulimits:
             - Name: nofile
@@ -683,7 +532,7 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Join ['-', ['/aqua/gateway', !Ref ECSCluster]]
+              awslogs-group: !Join ['-', ['/aqua/gateway', !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
               awslogs-region: !Ref "AWS::Region"
               awslogs-stream-prefix: aquaGateway
           Secrets:
@@ -739,25 +588,16 @@ Resources:
             - !Ref AquaFargateSecurityGroup
           Subnets: !Ref EcsInstanceSubnets
       Cluster: !Ref ECSCluster
-      ServiceName: !Join
-        - '-'
-        - - !Ref ECSCluster
-          - aqua-gateway
+      ServiceName: !Join ["-", ["aqua-gateway", !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
       DesiredCount: '1'
       DeploymentConfiguration:
         MaximumPercent: '200'
         MinimumHealthyPercent: '100'
       LoadBalancers:
-        - ContainerName: !Join
-            - '-'
-            - - !Ref ECSCluster
-              - aqua-gateway
+        - ContainerName: !Join ["-", ["aqua-gateway", !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
           ContainerPort: '3622'
           TargetGroupArn: !Ref AquaGatewayTargetGroup
-        - ContainerName: !Join
-            - '-'
-            - - !Ref ECSCluster
-              - aqua-gateway
+        - ContainerName: !Join ["-", ["aqua-gateway", !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
           ContainerPort: '8443'
           TargetGroupArn: !Ref AquaGatewayGRPCTargetGroup
       TaskDefinition: !Ref AquaGatewayTaskDefinition
@@ -808,14 +648,10 @@ Resources:
           FromPort: 8080
           ToPort: 8080
           SourceSecurityGroupId: !Ref AquaConsoleSecurityGroup
-
   AquaEcsTaskRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: !Join
-        - '-'
-        - - !Ref ECSCluster
-          - AquaEcsTaskRole
+      RoleName: !Join ["-", ["AquaEcsTaskRole", !GetAtt RandomString.RandomString]]
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -827,10 +663,7 @@ Resources:
               - 'sts:AssumeRole'
       Path: /
       Policies:
-        - PolicyName: !Join
-            - '-'
-            - - !Ref ECSCluster
-              - AquaScannerPolicy
+        - PolicyName: !Join ["-", ["AquaScannerPolicy", !GetAtt RandomString.RandomString]]
           PolicyDocument:
             Version: 2012-10-17
             Statement:
@@ -878,16 +711,15 @@ Resources:
                   - 'kms:Decrypt'
                   - 'kms:Encrypt'
                 Resource: '*'
-
   AquaConsoleLogs:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      LogGroupName: !Join ['-', ['/aqua/console', !Ref ECSCluster]]
+      LogGroupName: !Join ['-', ['/aqua/console', !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
       RetentionInDays: 30
   AquaGatewayLogs:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      LogGroupName: !Join ['-', ['/aqua/gateway', !Ref ECSCluster]]
+      LogGroupName: !Join ['-', ['/aqua/gateway', !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
       RetentionInDays: 30
 
   AquaNlb:
@@ -959,7 +791,7 @@ Resources:
       VPCSecurityGroups:
         - !Ref RdsSecurityGroup
       BackupRetentionPeriod: '7'
-      DBInstanceIdentifier: !Join ['-', ['aquasec-db', !Ref ECSCluster]]
+      DBInstanceIdentifier: !Join ['-', ['aquasec-db', !Join ["-", ["rds", !GetAtt RandomString.RandomString]]]]
       DBInstanceClass: !Ref RdsInstanceClass
       DBSubnetGroupName: !Ref RdsInstanceSubnetGroup
       DeleteAutomatedBackups: False
@@ -984,15 +816,15 @@ Resources:
       VPCSecurityGroups:
         - !Ref RdsSecurityGroup
       BackupRetentionPeriod: '7'
-      DBInstanceIdentifier: !Join ['-', ['aquasec-audit-db', !Ref ECSCluster]]
+      DBInstanceIdentifier: !Join ['-', ['aquasec-audit-db', !Join ["-", ["rds", !GetAtt RandomString.RandomString]]]]
       DBInstanceClass: !Ref AuditRdsInstanceClass
       DBSubnetGroupName: !Ref RdsInstanceSubnetGroup
       DeleteAutomatedBackups: False
       DeletionProtection: False
       Engine: postgres
       EngineVersion: 11.9
-      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref SecretUsername, ':SecretString}}' ]]
-      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref Secret0, ':SecretString}}' ]]
+      MasterUsername: !Join [ '', [ '{{resolve:secretsmanager:', !Ref SecretUsername, ':SecretString}}' ] ]
+      MasterUserPassword: !Join [ '', [ '{{resolve:secretsmanager:', !Ref Secret0, ':SecretString}}' ] ]
       MultiAZ: !Ref MultiAzDatabase
       StorageType: gp2
       StorageEncrypted: True
@@ -1036,31 +868,16 @@ Resources:
 Outputs:
   AquaConsole:
     Description: URL to access Aqua Security Console
-    Value: !Join
-      - ''
-      - - 'https://'
-        - !GetAtt
-          - AquaConsoleLB
-          - DNSName
+    Value: !Join ["", ['https://', !GetAtt AquaConsoleLB.DNSName]]
   AquaConsoleGrpcConnection:
     Description: >-
       DNS to server gRPC
-    Value: !Join
-      - ''
-      - - !GetAtt
-          - AquaNlb
-          - DNSName
-        - ':8443'
+    Value: !Join ["", ['https://', !GetAtt AquaConsoleLB.DNSName, ":8443"]]
   AquaGatewayExternalConnection:
     Description: >-
       Aqua Enforcer gateway startup connection string for use when Enforcers are
       external to VPC.
-    Value: !Join
-      - ''
-      - - !GetAtt
-          - AquaNlb
-          - DNSName
-        - ':3622'
+    Value: !Join [":", [!GetAtt AquaNlb.DNSName, "3622"]]
   AquaEcsTaskRole:
     Description: IAM role assigned to access ECR
     Value: !Ref AquaEcsTaskRole
