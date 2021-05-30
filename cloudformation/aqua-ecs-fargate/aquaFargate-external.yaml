@@ -100,7 +100,7 @@ Parameters:
     Type: String  
       
   AuditRDS:
-    Description: Select Yes to create a separate Manage RDS instance for Audit
+    Description: Select Yes if you are having a seperate RDS endpoing for Audit
     Default: 'No'
     Type: String
     AllowedValues: ['Yes', 'No']
@@ -117,7 +117,6 @@ Parameters:
     NoEcho: true
     Description: Enter Audit DB password
     Type: String
-
   ClusterName:
     Description: Name of ecs cluster to be created
     Type: String
@@ -134,13 +133,11 @@ Parameters:
     AllowedValues:
       - 'true'
       - 'false'
-
 Conditions:
   CreateActiveActive: !Equals [ !Ref ActiveActive, 'true' ]
   NotCreateActiveActive: !Equals [ !Ref ActiveActive, 'false' ]
   CreateAuditrds: !Equals [!Ref AuditRDS, 'Yes']
-  ReplaceAuditrds: !Equals [!Ref AuditRDS, 'No'] 
-
+  ReplaceAuditrds: !Equals [!Ref AuditRDS, 'No']
 Resources:
   LambdaExecutionRole:
     Type: AWS::IAM::Role
@@ -162,8 +159,7 @@ Resources:
               - Effect: "Allow"
                 Action:
                   - "logs:*"
-                Resource: "*"              
-                        
+                Resource: "*"
   RandomStringLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -189,16 +185,16 @@ Resources:
             else: # if event["RequestType"] == "Update" or event["RequestType"] == "Delete":
               physicalResourceId = event["PhysicalResourceId"]
             cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data, physicalResourceId)
-  SampleString:
+  RandomString:
    Type: AWS::CloudFormation::CustomResource
    Properties:
      Length: 5
-     ServiceToken: !GetAtt RandomStringLambdaFunction.Arn      
+     ServiceToken: !GetAtt RandomStringLambdaFunction.Arn
   # ECS Cluster
   ECSCluster:
     Type: AWS::ECS::Cluster
     Properties:
-      ClusterName: !Join ["-", [!Ref ClusterName, !GetAtt SampleString.RandomString]]
+      ClusterName: !Join ["-", [!Ref ClusterName, !GetAtt RandomString.RandomString]]
   # Aqua Console
   AquaConsoleLB:
     Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
@@ -672,7 +668,7 @@ Resources:
                     - DNSName
                   - ':8443'
   AquaGatewayService:
-    Type: 'AWS::ECS::Service'  
+    Type: 'AWS::ECS::Service'
     DependsOn:
       - AquaGatewayTaskDefinition
       - AquaNlb
@@ -942,21 +938,11 @@ Resources:
 Outputs:
   AquaConsole:
     Description: URL to access Aqua Security Console
-    Value: !Join
-      - ''
-      - - 'https://'
-        - !GetAtt
-          - AquaConsoleLB
-          - DNSName
+    Value: !Join ["", ['https://', !GetAtt AquaConsoleLB.DNSName]]
   AquaConsoleGrpcConnection:
     Description: >-
       DNS to server gRPC
-    Value: !Join
-      - ''
-      - - !GetAtt
-          - AquaNlb
-          - DNSName
-        - ':8443'
+    Value: !Join ["", [!GetAtt AquaNlb.DNSName, ':8443']]
   AquaGatewayExternalConnection:
     Description: >-
       Aqua Enforcer gateway startup connection string for use when Enforcers are

@@ -45,7 +45,6 @@ Metadata:
         default: Web Console Source
       ClusterName:
         default: Name of ecs cluster
-        
 Parameters:
   AquaServerImage:
     Type: String
@@ -98,7 +97,7 @@ Parameters:
     Type: String  
       
   AuditRDS:
-    Description: Select Yes to create a separate Manage RDS instance for Audit
+    Description: Select Yes if you are having a seperate RDS endpoing for Audit
     Default: 'No'
     Type: String
     AllowedValues: ['Yes', 'No']
@@ -114,16 +113,13 @@ Parameters:
   AuditDBPassword:
     NoEcho: true
     Description: Enter Audit DB password
-    Type: String    
-
+    Type: String
   ClusterName:
     Description: Name of ecs cluster to be created
     Type: String
     MinLength: '5'
     MaxLength: '25'
     AllowedPattern: '[a-z\p{Punct}0-9]*'
-    
-        
   ActiveActive: 
     Description: Active Active configuration for aqua console 
     Type: String
@@ -131,16 +127,12 @@ Parameters:
     AllowedValues:
       - 'true'
       - 'false'
-      
 Conditions:
   CreateActiveActive: !Equals [ !Ref ActiveActive, 'true' ]
   NotCreateActiveActive: !Equals [ !Ref ActiveActive, 'false' ]
   CreateAuditrds: !Equals [!Ref AuditRDS, 'Yes']
   ReplaceAuditrds: !Equals [!Ref AuditRDS, 'No']
-
-  
-  
-Resources: 
+Resources:
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -161,8 +153,7 @@ Resources:
               - Effect: "Allow"
                 Action:
                   - "logs:*"
-                Resource: "*"              
-                        
+                Resource: "*"
   RandomStringLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -188,16 +179,16 @@ Resources:
             else: # if event["RequestType"] == "Update" or event["RequestType"] == "Delete":
               physicalResourceId = event["PhysicalResourceId"]
             cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data, physicalResourceId)
-  SampleString:
+  RandomString:
    Type: AWS::CloudFormation::CustomResource
    Properties:
      Length: 5
-     ServiceToken: !GetAtt RandomStringLambdaFunction.Arn    
+     ServiceToken: !GetAtt RandomStringLambdaFunction.Arn
   # ECS Cluster
   ECSCluster:
     Type: AWS::ECS::Cluster
     Properties:
-      ClusterName: !Join ["-", [!Ref ClusterName, !GetAtt SampleString.RandomString]]
+      ClusterName: !Join ["-", [!Ref ClusterName, !GetAtt RandomString.RandomString]]
   # Aqua Console
   AquaConsoleLB:
     Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
@@ -216,7 +207,7 @@ Resources:
   AquaConsoleTaskDefinition:
     Type: 'AWS::ECS::TaskDefinition'
     Condition: NotCreateActiveActive
-    DependsOn: 
+    DependsOn:
       - SecretU
       - SecretP
       - AquaEcsTaskRole
@@ -330,12 +321,11 @@ Resources:
   AquaConsoleTaskDefinitionActiveActive:
     Type: 'AWS::ECS::TaskDefinition'
     Condition: CreateActiveActive
-    DependsOn: 
+    DependsOn:
       - SecretU
       - SecretP
       - AquaEcsTaskRole
       - AquaConsoleLogs
-
     Properties:
       Family: !Join
         - '-'
@@ -591,7 +581,7 @@ Resources:
       VpcId: !Ref VpcId
   AquaGatewayTaskDefinition:
     Type: 'AWS::ECS::TaskDefinition'
-    DependsOn: 
+    DependsOn:
       - SecretU
       - SecretP
       - AquaEcsTaskRole
@@ -669,7 +659,7 @@ Resources:
                     - DNSName
                   - ':8443'
   AquaGatewayService:
-    Type: 'AWS::ECS::Service'  
+    Type: 'AWS::ECS::Service'
     DependsOn:
       - AquaGatewayTaskDefinition
       - AquaNlb
@@ -823,48 +813,6 @@ Resources:
                   - 'kms:Decrypt'
                   - 'kms:Encrypt'
                 Resource: '*'
-  #mysecrets
-  SecretU:
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Description: Aqua RDS Username
-      Name: !Join
-        - '/'
-        - - !Ref ECSCluster
-          - AquaRdsUsername
-      SecretString: !Ref AquaDBUserName  
-
-  SecretP:
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Description: Aqua RDS Password
-      Name: !Join
-        - '/'
-        - - !Ref ECSCluster
-          - AquaRdsPassword
-      SecretString: !Ref AquaDBPassword 
-
-  SecretAuditU:
-    Condition: CreateAuditrds
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Description: Audit RDS Username
-      Name: !Join
-        - '/'
-        - - !Ref ECSCluster
-          - AuditRdsUsername
-      SecretString: !Ref AuditDBUserName  
-
-  SecretAuditP:
-    Condition: CreateAuditrds
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Description: Audit RDS Password
-      Name: !Join
-        - '/'
-        - - !Ref ECSCluster
-          - AuditRdsPassword
-      SecretString: !Ref AuditDBPassword                   
 
   AquaConsoleLogs:
     Type: 'AWS::Logs::LogGroup'
@@ -935,24 +883,56 @@ Resources:
               s3:x-amz-acl: bucket-owner-full-control
 
 
+  #mysecrets
+  SecretU:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Aqua RDS Username
+      Name: !Join
+        - '/'
+        - - !Ref ECSCluster
+          - AquaRdsUsername
+      SecretString: !Ref AquaDBUserName
+
+  SecretP:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Aqua RDS Password
+      Name: !Join
+        - '/'
+        - - !Ref ECSCluster
+          - AquaRdsPassword
+      SecretString: !Ref AquaDBPassword
+
+  SecretAuditU:
+    Condition: CreateAuditrds
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Audit RDS Username
+      Name: !Join
+        - '/'
+        - - !Ref ECSCluster
+          - AuditRdsUsername
+      SecretString: !Ref AuditDBUserName
+
+  SecretAuditP:
+    Condition: CreateAuditrds
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Audit RDS Password
+      Name: !Join
+        - '/'
+        - - !Ref ECSCluster
+          - AuditRdsPassword
+      SecretString: !Ref AuditDBPassword
 Outputs:
   AquaConsole:
     Description: URL to access Aqua Security Console
-    Value: !Join
-      - ''
-      - - 'http://'
-        - !GetAtt
-          - AquaConsoleLB
-          - DNSName
+    Value: !Join ["", ['http://', !GetAtt AquaConsoleLB.DNSName]]
   AquaConsoleGrpcConnection:
     Description: >-
       DNS to server gRPC
-    Value: !Join
-      - ''
-      - - !GetAtt
-          - AquaNlb
-          - DNSName
-        - ':8443'
+    Value: !Join ["", [!GetAtt AquaNlb.DNSName, ':8443']]
   AquaGatewayExternalConnection:
     Description: >-
       Aqua Enforcer gateway startup connection string for use when Enforcers are
