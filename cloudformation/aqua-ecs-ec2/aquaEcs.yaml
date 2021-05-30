@@ -462,7 +462,7 @@ Resources:
             - Name: AQUA_PUBSUB_DBNAME
               Value: pubsub
             - Name: AQUA_PUBSUB_DBHOST
-              Value: !GetAtt.RdsInstance.Endpoint.Address
+              Value: !GetAtt RdsInstance.Endpoint.Address
             - Name: AQUA_CLUSTER_MODE
               Value: active-active
       NetworkMode: bridge
