@@ -813,48 +813,6 @@ Resources:
                   - 'kms:Decrypt'
                   - 'kms:Encrypt'
                 Resource: '*'
-  #mysecrets
-  SecretU:
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Description: Aqua RDS Username
-      Name: !Join
-        - '/'
-        - - !Ref ECSCluster
-          - AquaRdsUsername
-      SecretString: !Ref AquaDBUserName  
-
-  SecretP:
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Description: Aqua RDS Password
-      Name: !Join
-        - '/'
-        - - !Ref ECSCluster
-          - AquaRdsPassword
-      SecretString: !Ref AquaDBPassword 
-
-  SecretAuditU:
-    Condition: CreateAuditrds
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Description: Audit RDS Username
-      Name: !Join
-        - '/'
-        - - !Ref ECSCluster
-          - AuditRdsUsername
-      SecretString: !Ref AuditDBUserName  
-
-  SecretAuditP:
-    Condition: CreateAuditrds
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Description: Audit RDS Password
-      Name: !Join
-        - '/'
-        - - !Ref ECSCluster
-          - AuditRdsPassword
-      SecretString: !Ref AuditDBPassword                   
 
   AquaConsoleLogs:
     Type: 'AWS::Logs::LogGroup'
@@ -925,6 +883,48 @@ Resources:
               s3:x-amz-acl: bucket-owner-full-control
 
 
+  #mysecrets
+  SecretU:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Aqua RDS Username
+      Name: !Join
+        - '/'
+        - - !Ref ECSCluster
+          - AquaRdsUsername
+      SecretString: !Ref AquaDBUserName
+
+  SecretP:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Aqua RDS Password
+      Name: !Join
+        - '/'
+        - - !Ref ECSCluster
+          - AquaRdsPassword
+      SecretString: !Ref AquaDBPassword
+
+  SecretAuditU:
+    Condition: CreateAuditrds
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Audit RDS Username
+      Name: !Join
+        - '/'
+        - - !Ref ECSCluster
+          - AuditRdsUsername
+      SecretString: !Ref AuditDBUserName
+
+  SecretAuditP:
+    Condition: CreateAuditrds
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Audit RDS Password
+      Name: !Join
+        - '/'
+        - - !Ref ECSCluster
+          - AuditRdsPassword
+      SecretString: !Ref AuditDBPassword
 Outputs:
   AquaConsole:
     Description: URL to access Aqua Security Console

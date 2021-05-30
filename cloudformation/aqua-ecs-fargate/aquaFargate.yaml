@@ -179,7 +179,7 @@ Conditions:
   CreateActiveActive: !Equals [ !Ref ActiveActive, 'true' ]
   NotCreateActiveActive: !Equals [ !Ref ActiveActive, 'false' ]
   CreateAuditrds: !Equals [!Ref AuditRDS, 'Yes']
-  ReplaceAuditrds: !Equals [!Ref AuditRDS, 'No']  
+  ReplaceAuditrds: !Equals [!Ref AuditRDS, 'No']
 Resources:
   LambdaExecutionRole:
     Type: AWS::IAM::Role
@@ -201,8 +201,7 @@ Resources:
               - Effect: "Allow"
                 Action:
                   - "logs:*"
-                Resource: "*"              
-                        
+                Resource: "*"
   RandomStringLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -290,17 +289,17 @@ Resources:
               awslogs-stream-prefix: aquaConsole
           Secrets:
             - Name: SCALOCK_DBPASSWORD
-              ValueFrom: !Ref Secret0
+              ValueFrom: !Ref SecretP
             - Name: SCALOCK_AUDIT_DBPASSWORD
-              ValueFrom: !Ref Secret0
+              ValueFrom: !Ref SecretP
             - Name: SCALOCK_DBUSER
-              ValueFrom: !Ref SecretUsername
+              ValueFrom: !Ref SecretU
             - Name: SCALOCK_AUDIT_DBUSER
-              ValueFrom: !Ref SecretUsername
+              ValueFrom: !Ref SecretU
             - Name: AQUA_PUBSUB_DBPASSWORD
-              ValueFrom: !Ref Secret0
+              ValueFrom: !Ref SecretP
             - Name: AQUA_PUBSUB_DBUSER
-              ValueFrom: !Ref SecretUsername
+              ValueFrom: !Ref SecretU
           Environment:
             - Name: SCALOCK_LOG_LEVEL
               Value: DEBUG
@@ -331,9 +330,7 @@ Resources:
             - Name: AQUA_PUBSUB_DBNAME
               Value: pubsub
             - Name: AQUA_PUBSUB_DBHOST
-              Value: !GetAtt
-                    - RdsInstance
-                    - Endpoint.Address
+              Value: !GetAtt RdsInstance.Endpoint.Address
             - Name: AQUA_CLUSTER_MODE
               Value: active-active
       TaskRoleArn: !Ref AquaEcsTaskRole
@@ -359,10 +356,7 @@ Resources:
         MaximumPercent: '200'
         MinimumHealthyPercent: '100'
       LoadBalancers:
-        - ContainerName: !Join
-            - '-'
-            - - !Ref ECSCluster
-              - aqua-console
+        - ContainerName: !Join ["-", ["aqua-console", !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
           ContainerPort: '8080'
           TargetGroupArn: !Ref AquaConsoleTargetGroup
         - ContainerName: !Join ["-", ["aqua-console", !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
@@ -500,7 +494,7 @@ Resources:
       - AquaEcsTaskRole
       - RdsInstance
       - AquaGatewayLogs
-      - Secret0
+      - SecretP
     Properties:
       Family: !Join ["-", ["aqua-gateway", !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
       NetworkMode: awsvpc
@@ -536,13 +530,13 @@ Resources:
               awslogs-stream-prefix: aquaGateway
           Secrets:
             - Name: SCALOCK_DBPASSWORD
-              ValueFrom: !Ref Secret0
+              ValueFrom: !Ref SecretP
             - Name: SCALOCK_AUDIT_DBPASSWORD
-              ValueFrom: !Ref Secret0
+              ValueFrom: !Ref SecretP
             - Name: SCALOCK_DBUSER
-              ValueFrom: !Ref SecretUsername
+              ValueFrom: !Ref SecretU
             - Name: SCALOCK_AUDIT_DBUSER
-              ValueFrom: !Ref SecretUsername
+              ValueFrom: !Ref SecretU
           Environment:
             - Name: SCALOCK_LOG_LEVEL
               Value: DEBUG
@@ -570,7 +564,7 @@ Resources:
                     - DNSName
                   - ':8443'
   AquaGatewayService:
-    Type: 'AWS::ECS::Service'  
+    Type: 'AWS::ECS::Service'
     DependsOn:
       - AquaGatewayTaskDefinition
       - AquaNlb
