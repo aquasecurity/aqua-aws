@@ -490,7 +490,7 @@ Resources:
         - '-'
         - - !Ref EcsClusterName
           - aqua-gateway
-      DesiredCount: '2'
+      DesiredCount: '1'
       PlacementStrategies:
         - Type: spread
           Field: 'attribute:ecs.availability-zone'
