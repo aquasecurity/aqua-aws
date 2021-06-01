@@ -106,6 +106,8 @@ Resources:
                   SourceVolume: aquasec-tmp
                 - ContainerPath: /opt/aquasec/audit
                   SourceVolume: aquasec-audit
+                - ContainerPath: data
+                  SourceVolume: data
                 - ContainerPath: /host/proc
                   SourceVolume: proc
                   ReadOnly: true
@@ -155,6 +157,9 @@ Resources:
             - Host:
                 SourcePath: /opt/aquasec/audit
               Name: aquasec-audit
+            - Host:
+                SourcePath: /opt/aquasec/data
+              Name: data
             - Host:
                 SourcePath: /proc
               Name: proc
