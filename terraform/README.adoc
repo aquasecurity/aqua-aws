@@ -1,4 +1,7 @@
 :terraform_version: v0.12.16
+
+== Use of the TerraForm folder has been deprecated
+
 = Terraform Aqua Security Build
 
 * <<goals,Goals>>
