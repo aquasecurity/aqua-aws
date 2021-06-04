@@ -1,0 +1,12 @@
+:version: 6.0
+
+= image:https://avatars3.githubusercontent.com/u/12783832?s=200&v=4[height="100" width="100"] Aqua Security AWS Deployments
+
+This repository is for link:https://www.aquasec.com[Aqua Security] deployments related to link:https://aws.amazon.com/[Amazon Web Services (AWS)].
+
+== Navigation and description
+
+* **ECS CloudFormation** - link:cloudformation/aqua-ecs-ec2/[Aqua Security ECS deployment]: Instructions for creating a production-grade deployment of Aqua Enterprise (Server, Gateway, and Aqua Enforcer) on an Amazon ECS cluster, using either a CloudFormation template, or a command line interface
+* **ECS Fargate** - link:cloudformation/aqua-ecs-fargate/[Aqua Security ECS Fargate deployment]: Instructions for creating a production-grade deployment of Aqua Enterprise (Server and Gateway) on an Amazon ECS Fargate cluster
+* **Enforcer** - link:cloudformation/aqua-ecs-agent/[*Aqua Security ECS Agent*]: Deploy an Aqua Enforcer as a DaemonSet on an existing ECS cluster
+* **Serverless** - link:cloudformation/aqua-lambda/[*Aqua Security Serverless*]: Deploy the Aqua audit handler stack with SQS, to handle audit events reported by Aqua NanoEnforcers (for function runtime enforcement)
