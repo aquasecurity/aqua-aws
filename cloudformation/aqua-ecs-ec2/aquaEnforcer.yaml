@@ -179,6 +179,7 @@ Resources:
             - '-'
             - - aqua-enforcer
               - !Join ["-", ["td", !GetAtt SampleString.RandomString]]
+          TaskDefinition: !Ref AquaEnforcerTaskDefinition    
     AquaEnforcerLogs:
         Type: 'AWS::Logs::LogGroup'
         Properties:
