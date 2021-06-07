@@ -23,6 +23,7 @@ Metadata:
           - AquaGatewayImage
           - AquaEnforcerImage
           - BatchInstallToken
+          - Taskprivileged
       - Label:
           default: 'RDS Configuration: RDS Configuration'
         Parameters:
@@ -51,6 +52,8 @@ Metadata:
         default: RDS storage size (GB)
       MultiAzDatabase:
         default: Enable Multi-AZ RDS
+      Taskprivileged:
+        default: Enforcer Priviliged Mode
       SSLCert:
         default: SSL cert ARN
 Parameters:
@@ -170,6 +173,13 @@ Parameters:
   SSLCert:
     Description: ARN of the SSL cert to be used with console web UI LB
     Type: String
+  Taskprivileged:
+    Description: Select false to run enforcer in non-privileged mode. defualt is privileged mode.
+    Type: String 
+    Default: 'true'
+    AllowedValues:  
+      - 'true'
+      - 'false'
   
 Resources:
   LambdaExecutionRole:
@@ -624,7 +634,7 @@ Resources:
               SourceVolume: etc
               ReadOnly: true
           Name: aqua-enforcer
-          Privileged: true
+          Privileged: !Ref Taskprivileged
           LogConfiguration:
             LogDriver: awslogs
             Options:
