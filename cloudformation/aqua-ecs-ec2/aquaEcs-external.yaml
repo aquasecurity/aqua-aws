@@ -24,6 +24,7 @@ Metadata:
           - AquaEnforcerImage
           - BatchInstallToken
           - ActiveActive
+          - Taskprivileged
       - Label:
           default: Aqua Manage DB Configuration
         Parameters:
@@ -49,6 +50,8 @@ Metadata:
         default: Web Console Source
       SSLCert:
         default: SSL cert ARN
+      Taskprivileged:
+        default: Task Privileged
 Parameters:
   BatchInstallToken:
     Type: String
@@ -135,6 +138,13 @@ Parameters:
     AllowedValues:
       - 'true'
       - 'false'
+  Taskprivileged:
+    Description: Select false to run enforcer in non-privileged mode. defualt is privileged mode.
+    Type: String 
+    Default: 'true'
+    AllowedValues:  
+      - 'true'
+      - 'false' 
 Conditions:
   CreateActiveActive: !Equals [ !Ref ActiveActive, 'true' ]
   NotCreateActiveActive: !Equals [ !Ref ActiveActive, 'false' ]
@@ -590,7 +600,7 @@ Resources:
               SourceVolume: etc
               ReadOnly: true
           Name: aqua-enforcer
-          Privileged: true
+          Privileged: !Ref Taskprivileged
           LogConfiguration:
             LogDriver: awslogs
             Options:
