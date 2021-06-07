@@ -8,7 +8,7 @@ Metadata:\
     ParameterGroups:
       - Label:
           default: ECS Infrastructure Configuration
-        Parameters:
+        Parameters:1
           - VpcId
           - VpcCidr
           - EcsInstanceSubnets
