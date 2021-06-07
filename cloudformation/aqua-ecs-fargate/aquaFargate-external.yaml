@@ -3,7 +3,8 @@ Description: >-
   This AWS CloudFormation template installs the Aqua Command Center components
   in ECS FARGATE.
 Metadata:\
-  'AWS::CloudFormation::Interface':
+'moshwee
+    'AWS::CloudFormation::Interface':
     ParameterGroups:
       - Label:
           default: ECS Infrastructure Configuration
