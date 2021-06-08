@@ -10,6 +10,17 @@ pipeline {
         buildDiscarder(logRotator(daysToKeepStr: '7'))
     }
     stages {
+        stage('Checkout') {
+            steps {
+                checkout([
+                        $class: 'GitSCM',
+                        branches: scm.branches,
+                        doGenerateSubmoduleConfigurations: scm.doGenerateSubmoduleConfigurations,
+                        extensions: scm.extensions + [[$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [[path: 'cloudformation/']]]],
+                        userRemoteConfigs: scm.userRemoteConfigs
+                ])
+            }
+        }
         stage("Create Runs") {
             steps {
                 script {
