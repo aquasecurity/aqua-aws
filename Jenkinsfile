@@ -2,9 +2,7 @@
 
 pipeline {
     agent {
-        node {
-            label 'azure_slaves'
-        }
+        label 'azure_slaves'
         options {
             ansiColor('xterm')
             timestamps()
