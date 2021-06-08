@@ -22,7 +22,7 @@ pipeline {
         always {
             script {
 //                cleanWs()
-                echo "sssss"
+                echo "ssssss"
 //                notifyFullJobDetailes subject: "${env.JOB_NAME} Pipeline | ${currentBuild.result}", emails: userEmail
             }
         }
