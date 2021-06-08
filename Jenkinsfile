@@ -13,7 +13,7 @@ pipeline {
         stage("Create Runs") {
             steps {
                 script {
-                    cloudformation.run branch: githubBranch, publish: false
+                    cloudformation.run  publish: false
                 }
             }
         }
