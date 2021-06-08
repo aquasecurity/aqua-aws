@@ -1,4 +1,4 @@
-@Library('aqua-pipeline-lib@cloudformation_pr')_
+@Library('aqua-pipeline-lib@master')_
 
 pipeline {
     agent {
@@ -30,5 +30,4 @@ pipeline {
             }
         }
     }
-
 }
