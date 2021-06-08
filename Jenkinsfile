@@ -1,18 +1,16 @@
-@Library('aqua-pipeline-lib@master')_
+@Library('aqua-pipeline-lib@master') _
 
 pipeline {
-    agent {
-        label 'azure_slaves'
-        options {
-            ansiColor('xterm')
-            timestamps()
-            skipStagesAfterUnstable()
-            skipDefaultCheckout()
-            buildDiscarder(logRotator(daysToKeepStr: '7'))
-        }
+    agent { label 'azure_slaves' }
+    options {
+        ansiColor('xterm')
+        timestamps()
+        skipStagesAfterUnstable()
+        skipDefaultCheckout()
+        buildDiscarder(logRotator(daysToKeepStr: '7'))
     }
     stages {
-        stage ("Create Runs") {
+        stage("Create Runs") {
             steps {
                 script {
                     cloudformation.run branch: githubBranch, publish: false
