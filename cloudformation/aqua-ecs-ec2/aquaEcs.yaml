@@ -615,13 +615,13 @@ Resources:
       PidMode: 'host'
       ContainerDefinitions:
         - Memory: '1024'
-          Essential: 'true'
+            Essential: 'true'
           MountPoints:
             - ContainerPath: /var/run
               SourceVolume: var-run
             - ContainerPath: /dev
               SourceVolume: dev
-            - ContainerPath: /host/opt/aquasec
+              - ContainerPath: /host/opt/aquasec
               SourceVolume: aquasec
               ReadOnly: true
             - ContainerPath: /opt/aquasec/tmp
