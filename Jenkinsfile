@@ -9,6 +9,11 @@ pipeline {
         skipDefaultCheckout()
         buildDiscarder(logRotator(daysToKeepStr: '7'))
     }
+    environment {
+        AWS_DEFAULT_REGION = "us-east-1"
+        AWS_ACCESS_KEY_ID = credentials('marketplaceAwsKey')
+        AWS_SECRET_ACCESS_KEY = credentials('marketplaceAwsSecretKey')
+    }
     stages {
         stage('Checkout') {
             steps {
