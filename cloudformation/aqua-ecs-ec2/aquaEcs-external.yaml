@@ -24,6 +24,7 @@ Metadata:
           - AquaEnforcerImage
           - BatchInstallToken
           - ActiveActive
+          - Taskprivileged
       - Label:
           default: Aqua Manage DB Configuration
         Parameters:
@@ -49,6 +50,8 @@ Metadata:
         default: Web Console Source
       SSLCert:
         default: SSL cert ARN
+      Taskprivileged:
+        default: Enforcer Priviliged Mode 
 Parameters:
   BatchInstallToken:
     Type: String
@@ -132,9 +135,6 @@ Parameters:
     NoEcho: true
     Description: Enter Audit DB password
     Type: String
-
-
-  
   SSLCert:
     Type: String
     Description: ARN of the SSL cert to be used with console web UI LB
@@ -144,7 +144,14 @@ Parameters:
     Default: 'false'
     AllowedValues:
       - 'true'
-      - 'false'
+      - 'false'      
+  Taskprivileged:
+    Description: Select false to run enforcer in non-privileged mode. defualt is privileged mode.
+    Type: String 
+    Default: 'true'
+    AllowedValues:  
+      - 'true'
+      - 'false' 
 Conditions:
   CreateActiveActive: !Equals [ !Ref ActiveActive, 'true' ]
   NotCreateActiveActive: !Equals [ !Ref ActiveActive, 'false' ]
@@ -683,7 +690,22 @@ Resources:
               SourceVolume: etc
               ReadOnly: true
           Name: aqua-enforcer
-          Privileged: true
+          Privileged: !Ref Taskprivileged
+          LinuxParameters:
+            Capabilities:
+              ADD:
+                - SYS_ADMIN
+                - NET_ADMIN
+                - NET_RAW
+                - SYS_PTRACE
+                - KILL
+                - MKNOD
+                - SETGID
+                - SETUID
+                - SYS_MODULE
+                - AUDIT_CONTROL
+                - SYSLOG
+                - SYS_CHROOT
           LogConfiguration:
             LogDriver: awslogs
             Options:
