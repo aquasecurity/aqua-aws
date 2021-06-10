@@ -24,6 +24,7 @@ Metadata:
           - AquaEnforcerImage
           - BatchInstallToken
           - ActiveActive
+          - Taskprivileged
       - Label:
           default: 'RDS Configuration: RDS Configuration'
         Parameters:
@@ -52,6 +53,8 @@ Metadata:
         default: RDS storage size (GB)
       MultiAzDatabase:
         default: Enable Multi-AZ RDS
+      Taskprivileged:
+        default: Task Privileged  
       SSLCert:
         default: SSL cert ARN
 Parameters:
@@ -183,6 +186,14 @@ Parameters:
     AllowedValues:
       - 'true'
       - 'false'
+  Taskprivileged:
+    Description: Select false to run enforcer in non-privileged mode. defualt is privileged mode.
+    Type: String 
+    Default: 'true'
+    AllowedValues:  
+      - 'true'
+      - 'false'    
+
 Conditions:
   CreateActiveActive: !Equals [ !Ref ActiveActive, 'true' ]
   NotCreateActiveActive: !Equals [ !Ref ActiveActive, 'false' ]
@@ -640,7 +651,22 @@ Resources:
               SourceVolume: etc
               ReadOnly: true
           Name: aqua-enforcer
-          Privileged: true
+          Privileged: !Ref Taskprivileged
+          LinuxParameters:
+            Capabilities:
+              ADD:
+                - SYS_ADMIN
+                - NET_ADMIN
+                - NET_RAW
+                - SYS_PTRACE
+                - KILL
+                - MKNOD
+                - SETGID
+                - SETUID
+                - SYS_MODULE
+                - AUDIT_CONTROL
+                - SYSLOG
+                - SYS_CHROOT
           LogConfiguration:
             LogDriver: awslogs
             Options:
