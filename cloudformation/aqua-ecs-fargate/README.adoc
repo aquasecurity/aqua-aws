@@ -68,7 +68,7 @@ ParameterKey=RdsStorage,ParameterValue=50 \
 ParameterKey=VpcCidr,ParameterValue=x.x.x.x/x \
 ParameterKey=VpcId,ParameterValue=vpc-xxxx \
 ParameterKey=LbSubnets,ParameterValue=\"subnet-xxxx,subnet-xxxx\" \
-ParameterKey=LBScheme,ParameterValue=\"internet-facing\" 
+ParameterKey=LBScheme,ParameterValue=\"internet-facing\"
 ParameterKey=SSLCert,ParameterValue=\"arn:aws:acm:us-east-1:1234567890:certificate/xxxxxxxxxxxx\"
 ParameterKey=ActiveActive,ParameterValue=\"fasle\"
 ----
@@ -90,9 +90,24 @@ Having a seprate DB for audit events is an optional parameter. Select Yes for Au
 
 == External DB (Managed DB)
 
+image:https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png[Launch Stack,link=https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/{version}/aquaFargate-external.yaml]
+
 If you have an existing PostgreSQL database and want to use the same for aqua deployment, use the cloudformation template aquaFargate-external.yaml.
 
-= Microenforcer Deployment
+== None SSL Deployment
+=== Deployment
+
+image:https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png[Launch Stack,link=https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/{version}/aquaFargate-noneSSL.yaml]
+
+If you want to deploy CSP without SSL certificate, use the cloudformation template aquaFargate-noneSSL.yaml.
+
+=== External DB
+
+image:https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png[Launch Stack,link=https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/{version}/aquaFargate-noneSSL-external.yaml]
+
+If you have an existing PostgreSQL database and want to use the same for aqua deployment, use the cloudformation template aquaFargate-noneSSL-external.yaml.
+
+== MicroEnforcer Deployment
 
 AWS Fargate is a Container as a Service (CaaS) enviornment and you can deploy aqua microenforcer to provide runtime security to the containers deployed in AWS Fargate. Please refer to the the microenforcer docuemntation for more details.
 https://docs.aquasec.com/v{version}/docs/microenforcer
