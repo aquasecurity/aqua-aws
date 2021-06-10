@@ -9,6 +9,7 @@ Metadata:
         Parameters:
           - AquaGatewayAddress
           - AquaToken
+          - Taskprivileged
           - AquaEnforcerImage
           - ECSClusterName
           #- SSLCert
@@ -17,6 +18,8 @@ Metadata:
             default: Existing Aqua Gateway DNS/IP
         AquaToken:
             default: Aqua Token
+        Taskprivileged:
+            default: Task Privileged    
         AquaEnforcerImage:
             default: Aqua Enforcer Image
         ECSClusterName:
@@ -28,6 +31,13 @@ Parameters:
     AquaToken:
         Description: Aqua Enforcer installation token retrieved from Aqua Management Console.
         Type: String
+    Taskprivileged:
+        Description: Select false to run enforcer in non-privileged mode. defualt is privileged mode. 
+        Type: String 
+        Default: 'true'
+        AllowedValues:  
+          - 'true'
+          - 'false'
     AquaEnforcerImage:
         Type: String
         Description: Enter Enforcer image URI from ECR
@@ -118,7 +128,22 @@ Resources:
                   SourceVolume: etc
                   ReadOnly: true
               Name: aqua-enforcer
-              Privileged: true
+              Privileged: !Ref Taskprivileged
+              LinuxParameters:
+                Capabilities:
+                  ADD:
+                    - SYS_ADMIN
+                    - NET_ADMIN
+                    - NET_RAW
+                    - SYS_PTRACE
+                    - KILL
+                    - MKNOD
+                    - SETGID
+                    - SETUID
+                    - SYS_MODULE
+                    - AUDIT_CONTROL
+                    - SYSLOG
+                    - SYS_CHROOT
               LogConfiguration:
                 LogDriver: awslogs
                 Options:
