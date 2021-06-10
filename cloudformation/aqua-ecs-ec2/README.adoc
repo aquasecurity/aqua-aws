@@ -97,9 +97,11 @@ For an active-active Server configuration select the ActiveActive parameter valu
 
 == Split DB deployment
 
-Having a seprate DB for audit events is an optional parameter. Select "Yes" for AuditRDS parameter if you would like to create a separate RDS instance otherwise select "No" to use single RDS instance for both. Default value for AuditRDS (or split DB) is No. 
+Having a seprate DB for audit events is an optional parameter. Select "Yes" for AuditRDS parameter if you would like to create a separate RDS instance otherwise select "No" to use single RDS instance for both. Default value for AuditRDS (or split DB) is No.
 
 == External DB (Managed DB)
+
+image:https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png[Launch Stack,link=https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/{version}/aquaEcs-external.yaml]
 
 If you have an existing PostgreSQL database and want to use the same for aqua deployment, use the cloudformation template aquaEcs-external.yaml.
 
@@ -111,18 +113,18 @@ To upgrade your Aqua Enterprise version, modify the existing stack with the new 
 
 image:https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png[Launch Stack,link=https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/{version}/aquaEnforcer.yaml]
 
-== Description
+=== Description
 
 The Aqua Server and Gateway are deployed on a given ECS EC2 cluster. In multi-cluster environments, you can deploy Aqua Enforcers on different clusters.
 
-== Requirements
+=== Requirements
 
 * One or more ECS clusters
 * Aqua Gateway (existing) service DNS/IP
 * From Aqua Security: your Aqua credentials (username and password) and Aqua Enterprise License Token
 * Aqua Token
 
-== Before deployment
+=== Before deployment
 
 . Login to the Aqua Registry with your Aqua credentials:
 
@@ -134,15 +136,15 @@ The Aqua Server and Gateway are deployed on a given ECS EC2 cluster. In multi-cl
 
 . Push enforcer image to ECR.
 
-== Deployment method 1: CloudFormation Management Console
+=== Deployment method 1: CloudFormation Management Console
 
-. Click the *Launch Stack* icon at the top of this README.adoc file. This will take you to the *Create stack* function of the AWS CloudFormation Management Console.
+. Click the *Launch Stack* icon at the top of this README.adoc section. This will take you to the *Create stack* function of the AWS CloudFormation Management Console.
 . Ensure that your AWS region is set to where you want to deploy Aqua Enterprise.
 . Click "Next".
 . Set or modify any of the parameters (per the explanations provided).
 . Click "Next" to create the stack.
 
-== Deployment method 2: Command Line interface
+=== Deployment method 2: Command Line interface
 
 . Copy the following command:
 +
@@ -153,28 +155,25 @@ aws –region us-east-1 cloudformation create-stack –capabilities CAPABILITY_N
 ParameterKey=AquaToken,ParameterValue=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxx \
 ParameterKey=AquaEnforcerImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:enforcer-x.x\
 ParameterKey=ECSClusterName,ParameterValue=xxxxx
-
 ----
 
 . Set the parameters as follows:
 +
 [source,options="nowrap",subs="attributes"]
 ----
-
 AquaGatewayAddress = The Gateway Service DNS name or IP address (IP address with port number)
 AquaToken = Token from existing Aqua Enforcer group of the Aqua Server
 AquaEnforcerImage = The ECR path for the Aqua Enforcer product image
 ECSClusterName = The existing ECS cluster name
-
 ----
 . Run the AWS create-stack CLI command.
 +
 It will deploy Aqua Enforcer in your desired cluster and the newly deployed enforcers will get add to the existing Aqua server.
 
-## Scanner-only Deployment.
+== Scanner-only Deployment.
 image:https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png[Launch Stack,link=https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/{version}/aquaScanner.yaml]
 
-## Description
+=== Description
 
 This will help you to deploy Aqua in multi-cluster, you can deploy scanner in any other ECS EC2 cluster from Aqua (Server & Gateway) deployed clusters.
 
@@ -185,7 +184,7 @@ Requirements
 - From Aqua Security: your Aqua credentials (username and password) and CSP License Token
 - Aqua Scanner User Name and Password
 
-## Before deployment
+=== Before deployment
 
 . Login to the Aqua Registry with your Aqua credentials:
 +
@@ -201,35 +200,32 @@ docker pull registry.aquasec.com/scanner:{imageVersion}
 ----
 . Push scanner image to ECR.
 
-## Deployment method 1: CloudFormation Management Console
+=== Deployment method 1: CloudFormation Management Console
 
-. Click the <b>Launch Stack</b> icon at the top of this README.md file. This will take you to the <b>Create stack</b> function of the AWS CloudFormation Management Console.
+. Click the <b>Launch Stack</b> icon at the top of this README.md section. This will take you to the <b>Create stack</b> function of the AWS CloudFormation Management Console.
 . Ensure that your AWS region is set to where you want to deploy Aqua Scanner.
 . Click "Next".
 . Set or modify any of the parameters (per the explanations provided).
 . Click "Next" to create the stack.
 
-## Deployment method 2: Command Line interface
+=== Deployment method 2: Command Line interface
 
 . Copy the following command:
 +
 [source,options="nowrap",subs="attributes"]
 ----
-
 aws –region us-east-1 cloudformation create-stack –capabilities CAPABILITY_NAMED_IAM –stack-name aqua-scanner –template-body file://aquaScanner.yaml \
 –parameters ParameterKey=AquaServerAddress,ParameterValue=xxxxx \
 ParameterKey=AquaScannerUserName,ParameterValue=xxxxx \
 ParameterKey=AquaScannerPassword,ParameterValue=xxxxx \
 ParameterKey=AquaScannerImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:scanner-x.x\
 ParameterKey=ECSClusterName,ParameterValue=xxxxx
-
 ----
 
 . Set the parameters as follows:
 +
 [source,options="nowrap",subs="attributes"]
 ----
-
 AquaServerAddress = The Server DNS name or IP address (IP address with port number)
 AquaScannerUserName = The Scanner user name from Aqua server
 AquaScannerPassword = The Scanner user Password
