@@ -652,6 +652,21 @@ Resources:
               ReadOnly: true
           Name: aqua-enforcer
           Privileged: !Ref Taskprivileged
+          LinuxParameters:
+            Capabilities:
+              ADD:
+                - SYS_ADMIN
+                - NET_ADMIN
+                - NET_RAW
+                - SYS_PTRACE
+                - KILL
+                - MKNOD
+                - SETGID
+                - SETUID
+                - SYS_MODULE
+                - AUDIT_CONTROL
+                - SYSLOG
+                - SYS_CHROOT
           LogConfiguration:
             LogDriver: awslogs
             Options:
