@@ -11,6 +11,7 @@ For high availability, you must deploy Aqua on 2 availability zones (AZs).
 These instructions are applicable to all versions of Aqua Enterprise.
 
 Your deployment will create these services:
+
  - Aqua Server, deployed with an Amazon Application Load Balancer
  - Aqua Database, created on a new Amazon RDS instance, which includes 7 days of rolling backups
  - Aqua Audit Database, created on a new Amazon RDS instance, which includes 7 days of rolling backups
@@ -23,9 +24,9 @@ A CloudFormation template is used to deploy Aqua Enterprise. This can be done ei
 
 == Requirements
 
-* An ECS cluster with at least 2 instances registered
-* A VPC with at least 2 subnets
-* From Aqua Security: your Aqua credentials (username and password) and Enterprise License Token
+- An ECS cluster with at least 2 instances registered
+- A VPC with at least 2 subnets
+- From Aqua Security: your Aqua credentials (username and password) and Enterprise License Token
 
 == Before deployment
 
@@ -59,7 +60,7 @@ When completed, you can obtain the DNS name of the Aqua Server UI from the conso
 == Deployment method 2: command line interface
 
 . Copy the following command:
-
++
 [source,options="nowrap",subs="attributes"]
 ----
 aws --region us-east-1 cloudformation create-stack --capabilities CAPABILITY_NAMED_IAM --stack-name aqua-ec2 --template-body file://aquaEcs.yaml \
@@ -117,7 +118,7 @@ Resources–&gt;AquaConsoleTaskDefinition–&gt;Properties–&gt;ContainerDefini
     - Endpoint.Address
 - NAME: AQUA_CLUSTER_MODE
   VALUE: active-active
- ```
+----
 
 == Version upgrade
 
