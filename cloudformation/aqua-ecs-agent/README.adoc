@@ -1,5 +1,5 @@
 :version: 6.2
-:imageVersion: 6.2.RC2
+:imageVersion: 6.2.21166
 
 == Description
 This page contains instructions for creating a deployment of aquasec-agent.
