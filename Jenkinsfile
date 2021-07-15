@@ -16,8 +16,7 @@ pipeline {
     }
     stages {
         stage('Checkout') {
-            steps
-            script {
+            steps {
                 checkout([
                         $class: 'GitSCM',
                         branches: scm.branches,
@@ -25,8 +24,11 @@ pipeline {
                         extensions: scm.extensions + [[$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [[path: 'cloudformation/']]]],
                         userRemoteConfigs: scm.userRemoteConfigs
                 ])
-                deployment.clone branch: params.BRANCH
+                script {
+                    deployment.clone branch: params.BRANCH
+                }
             }
+
         }
         stage("Create Runs") {
             steps {
