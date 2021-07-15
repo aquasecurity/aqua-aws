@@ -16,7 +16,7 @@ pipeline {
     }
     stages {
         stage('Checkout') {
-            steps {
+            steps
                 checkout([
                         $class: 'GitSCM',
                         branches: scm.branches,
@@ -24,16 +24,16 @@ pipeline {
                         extensions: scm.extensions + [[$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [[path: 'cloudformation/']]]],
                         userRemoteConfigs: scm.userRemoteConfigs
                 ])
+            script {
+                deployment.clone branch: params.BRANCH
             }
         }
         stage("Create Runs") {
             steps {
                 script {
-                    dir("cloudformation"){
-                        def deploymentImage = docker.build("deployment-image")
-                        deploymentImage.inside("-u root") {
-                            cloudformation.run  publish: false
-                        }
+                    def deploymentImage = docker.build("deployment-image")
+                    deploymentImage.inside("-u root") {
+                        cloudformation.run  publish: false
                     }
                 }
             }
