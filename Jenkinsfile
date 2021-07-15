@@ -29,11 +29,12 @@ pipeline {
         stage("Create Runs") {
             steps {
                 script {
-                    def deploymentImage = docker.build("deployment-image")
-                    deploymentImage.inside("-u root") {
-                        cloudformation.run  publish: false
+                    dir("cloudformation"){
+                        def deploymentImage = docker.build("deployment-image")
+                        deploymentImage.inside("-u root") {
+                            cloudformation.run  publish: false
+                        }
                     }
-
                 }
             }
         }
