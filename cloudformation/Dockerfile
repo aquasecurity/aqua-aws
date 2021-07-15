@@ -5,7 +5,7 @@ ENV AWS_REGION ${AWS_REGION}
 
 WORKDIR /usr/src/app
 
-COPY . .
+COPY .. .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
