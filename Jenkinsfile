@@ -10,9 +10,9 @@ pipeline {
         buildDiscarder(logRotator(daysToKeepStr: '7'))
     }
     environment {
-        AWS_DEFAULT_REGION = "us-east-1"
-        AWS_ACCESS_KEY_ID = credentials('marketplaceAwsKey')
-        AWS_SECRET_ACCESS_KEY = credentials('marketplaceAwsSecretKey')
+        AWS_ACCESS_KEY_ID     = credentials('deployment-aws-access-key-id')
+        AWS_SECRET_ACCESS_KEY = credentials('deployment-aws-secret-access-key')
+        AWS_REGION = "us-west-2"
     }
     stages {
         stage('Checkout') {
@@ -29,7 +29,11 @@ pipeline {
         stage("Create Runs") {
             steps {
                 script {
-                    cloudformation.run  publish: false
+                    def deploymentImage = docker.build("deployment-image")
+                    deploymentImage.inside("-u root") {
+                        cloudformation.run  publish: false
+                    }
+
                 }
             }
         }
