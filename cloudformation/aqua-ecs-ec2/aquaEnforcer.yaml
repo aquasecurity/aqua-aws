@@ -100,7 +100,7 @@ Resources:
     AquaEnforcerTaskDefinition:
         Type: 'AWS::ECS::TaskDefinition'
         Properties:
-          PidMode: 'host'
+            PidMode: 'host'
           ContainerDefinitions:
             - Memory: '1024'
               Essential: 'true'
