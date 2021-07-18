@@ -13,7 +13,7 @@ logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', datefmt='%m
 parser = argparse.ArgumentParser(description='Personal information')
 parser.add_argument('--aws_access_key_id', dest='aws_access_key_id', type=str, help='aws_access_key_id', default=os.environ.get("AWS_ACCESS_KEY_ID"))
 parser.add_argument('--aws_secret_access_key', dest='aws_secret_access_key', type=str, help='aws_secret_access_key', default=os.environ.get("AWS_SECRET_ACCESS_KEY"))
-parser.add_argument('--region', dest='region', type=str, help='region', default=os.environ.get("REGION"))
+parser.add_argument('--region', dest='region', type=str, help='region', default=os.environ.get("AWS_REGION"))
 parser.add_argument('--filename', dest='filename', type=str, help='cloudformation file name')
 
 args = parser.parse_args()

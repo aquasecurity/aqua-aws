@@ -40,6 +40,11 @@ pipeline {
                 script {
                     def deploymentImage = docker.build("deployment-image")
                     deploymentImage.inside("-u root") {
+                        log.info "Installing aqaua-deployment  python package"
+                        sh """
+                        aws codeartifact login --tool pip --repository deployment --domain aqua-deployment --domain-owner 934027998561
+                        pip install aqua-deployment
+                        """
                         cloudformation.run  publish: false
                     }
                 }
