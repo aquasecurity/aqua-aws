@@ -27,7 +27,7 @@ pipeline {
                 ])
                 script {
                     dir("cloudformation"){
-                        sh "mv cloudformation/* . && rm cloudformation"
+                        sh "mv cloudformation/* . && rm -rf cloudformation"
                     }
                     deployment.clone branch: "master"
                 }
