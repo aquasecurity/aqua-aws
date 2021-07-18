@@ -1,4 +1,4 @@
-@Library('aqua-pipeline-lib@master')_
+@Library('aqua-pipeline-lib@cloudformation_python')_
 
 pipeline {
     agent { label 'azure_slaves' }
@@ -17,19 +17,20 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout([
-                        $class: 'GitSCM',
-                        branches: scm.branches,
-                        doGenerateSubmoduleConfigurations: scm.doGenerateSubmoduleConfigurations,
-                        extensions: [[$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [[path: 'cloudformation/']]],
-                                     [$class: 'RelativeTargetDirectory', relativeTargetDir: 'cloudformation']],
-                        userRemoteConfigs: scm.userRemoteConfigs
-                ])
+
                 script {
+                    deployment.clone branch: "master"
+                    checkout([
+                            $class: 'GitSCM',
+                            branches: scm.branches,
+                            doGenerateSubmoduleConfigurations: scm.doGenerateSubmoduleConfigurations,
+                            extensions: [[$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [[path: 'cloudformation/']]],
+                                         [$class: 'RelativeTargetDirectory', relativeTargetDir: 'cloudformation']],
+                            userRemoteConfigs: scm.userRemoteConfigs
+                    ])
                     dir("cloudformation"){
                         sh "mv cloudformation/* . && rm -rf cloudformation"
                     }
-                    deployment.clone branch: "master"
                 }
             }
 
