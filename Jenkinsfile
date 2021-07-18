@@ -21,10 +21,14 @@ pipeline {
                         $class: 'GitSCM',
                         branches: scm.branches,
                         doGenerateSubmoduleConfigurations: scm.doGenerateSubmoduleConfigurations,
-                        extensions: scm.extensions + [[$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [[path: 'cloudformation/']]], [$class: 'CleanCheckout']],
+                        extensions: [[$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [[path: 'cloudformation/']]],
+                                     [$class: 'RelativeTargetDirectory', relativeTargetDir: 'cloudformation']],
                         userRemoteConfigs: scm.userRemoteConfigs
                 ])
                 script {
+                    dir("cloudformation"){
+                        sh "mv cloudformation/* . && rm cloudformation"
+                    }
                     deployment.clone branch: "master"
                 }
             }
