@@ -25,7 +25,7 @@ pipeline {
                         userRemoteConfigs: scm.userRemoteConfigs
                 ])
                 script {
-                    deployment.clone branch: master
+                    deployment.clone branch: "master"
                 }
             }
 
