@@ -1,4 +1,4 @@
-@Library('aqua-pipeline-lib@cloudformation_python')_
+@Library('aqua-pipeline-lib@master')_
 
 pipeline {
     agent { label 'azure_slaves' }
@@ -45,6 +45,7 @@ pipeline {
                         aws codeartifact login --tool pip --repository deployment --domain aqua-deployment --domain-owner 934027998561
                         pip install aqua-deployment
                         """
+                        log.info "Finished to install aqaua-deployment python package"
                         cloudformation.run  publish: false
                     }
                 }
