@@ -155,7 +155,8 @@ aws –region us-east-1 cloudformation create-stack –capabilities CAPABILITY_N
 –parameters ParameterKey=AquaGatewayAddress,ParameterValue=xxxxx \
 ParameterKey=AquaToken,ParameterValue=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxx \
 ParameterKey=AquaEnforcerImage,ParameterValue=xxxx.dkr.ecr.us-east-1.amazonaws.com/aqua:enforcer-x.x\
-ParameterKey=ECSClusterName,ParameterValue=xxxxx
+ParameterKey=ECSClusterName,ParameterValue=xxxxx \
+ParameterKey=TaskPrivileged,ParameterValue=false
 ----
 
 . Set the parameters as follows:
@@ -164,6 +165,7 @@ ParameterKey=ECSClusterName,ParameterValue=xxxxx
 ----
 AquaGatewayAddress = The Gateway Service DNS name or IP address (IP address with port number)
 AquaToken = Token from existing Aqua Enforcer group of the Aqua Server
+TaskPrivileged = Select Yes to run the Enforcer in priviliged mode or false to run in non-privilged mode
 AquaEnforcerImage = The ECR path for the Aqua Enforcer product image
 ECSClusterName = The existing ECS cluster name
 ----
