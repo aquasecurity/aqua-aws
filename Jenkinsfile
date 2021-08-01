@@ -17,7 +17,6 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-
                 script {
                     deployment.clone branch: "master"
                     checkout([
@@ -33,7 +32,6 @@ pipeline {
                     }
                 }
             }
-
         }
         stage("Create Runs") {
             steps {

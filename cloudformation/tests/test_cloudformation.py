@@ -43,5 +43,3 @@ ecs_client = session.create_client("ecs")
 cf_client = session.create_client("cloudformation")
 cf = cloudformation.Cloudformation(cf_client, filename)
 cf.verify_cloudformation_template()
-
-# cf.deploy_cloudformation_template()
