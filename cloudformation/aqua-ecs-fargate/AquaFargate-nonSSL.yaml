@@ -833,11 +833,11 @@ Resources:
 Outputs:
   AquaConsole:
     Description: URL to access Aqua Security Console
-    Value: !Join ["", ['https://', !GetAtt AquaConsoleLB.DNSName]]
+    Value: !Join ["", ['http://', !GetAtt AquaConsoleLB.DNSName]]
   AquaConsoleGrpcConnection:
     Description: >-
       DNS to server gRPC
-    Value: !Join ["", ['https://', !GetAtt AquaConsoleLB.DNSName, ":8443"]]
+    Value: !Join ["", ['http://', !GetAtt AquaConsoleLB.DNSName, ":8443"]]
   AquaGatewayExternalConnection:
     Description: >-
       Aqua Enforcer gateway startup connection string for use when Enforcers are
