@@ -7,7 +7,7 @@ Parameters:
     Description: Enter Aqua gateway address
   AquaToken:
     Type: String
-    Description: Enter Aqua enforcer-group token
+    Description: Enter Aqua enforcer-group tokenn
   S3Bucket:
     Type: String
     Description: Enter the S3 bucket where Aqua function.zip is stored
