@@ -1,5 +1,5 @@
-:version: 6.5
-:imageVersion: 6.5
+:version: 6.2
+:imageVersion: 6.2
 
 image:https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png[Launch Stack,link=https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/{version}/aquaFargate.yaml]
 
@@ -111,13 +111,6 @@ If you have an existing PostgreSQL database and want to use the same for aqua de
 
 AWS Fargate is a Container as a Service (CaaS) enviornment and you can deploy aqua microenforcer to provide runtime security to the containers deployed in AWS Fargate. Please refer to the the microenforcer docuemntation for more details.
 https://docs.aquasec.com/v{version}/docs/microenforcer
-
-== Cloud Connector Deployment
-
-The Aqua Cloud Connector is used in conjunction with Aqua Platform SaaS Edition (Enterprise Plan) deployments.
-https://docs.aquasec.com/docs/aqua-cloud-connector
-
-image:https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png[Launch Stack,link=https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=aqua-ecs&templateURL=https://s3.amazonaws.com/aqua-security-public/{version}/CloudConnectorFargate.yaml]
 
 == Version upgrade
 
