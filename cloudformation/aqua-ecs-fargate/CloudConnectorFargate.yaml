@@ -51,7 +51,7 @@ Parameters:
     Type: String
     MinLength: '5'
     MaxLength: '25'
-    AllowedPattern: '[a-z\p{Punct}0-9]*'
+    AllowedPattern: '[a-zA-Z0-9-]*'
   AquaGatewayUrl:
     Type: String
     Description: Enter Aqua Gateway Url
@@ -110,10 +110,10 @@ Resources:
               physicalResourceId = event["PhysicalResourceId"]
             cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data, physicalResourceId)
   RandomString:
-    Type: AWS::CloudFormation::CustomResource
-    Properties:
-      Length: 5
-      ServiceToken: !GetAtt RandomStringLambdaFunction.Arn
+   Type: AWS::CloudFormation::CustomResource
+   Properties:
+     Length: 5
+     ServiceToken: !GetAtt RandomStringLambdaFunction.Arn
   AquaCCTaskDefinition:
     Type: 'AWS::ECS::TaskDefinition'
     DependsOn:
