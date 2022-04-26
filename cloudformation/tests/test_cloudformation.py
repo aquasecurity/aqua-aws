@@ -22,6 +22,8 @@ aws_access_key_id = args.aws_access_key_id
 aws_secret_access_key = args.aws_secret_access_key
 region = args.region
 filename = args.filename
+cluster_name = "test"
+parameters = ["test"]
 
 if aws_access_key_id is None:
     # logging.error("Missing aws_access_key_id arg, please add it with --aws_access_key_id or with env as: AWS_ACCESS_KEY_ID")
@@ -41,5 +43,5 @@ session = boto3.Boto3(aws_access_key_id, aws_secret_access_key, region)
 
 ecs_client = session.create_client("ecs")
 cf_client = session.create_client("cloudformation")
-cf = cloudformation.Cloudformation(cf_client, filename)
+cf = cloudformation.Cloudformation(cf_client, filename, cluster_name, parameters)
 cf.verify_cloudformation_template()
