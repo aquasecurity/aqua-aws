@@ -10,8 +10,8 @@ pipeline {
         buildDiscarder(logRotator(daysToKeepStr: '7'))
     }
     environment {
-        AWS_ACCESS_KEY_ID     = credentials('deployment-aws-access-key-id')
-        AWS_SECRET_ACCESS_KEY = credentials('deployment-aws-secret-access-key')
+        AWS_ACCESS_KEY_ID     = credentials('svc_team_1_aws_access_key_id')
+        AWS_SECRET_ACCESS_KEY = credentials('svc_team_1_aws_secret_access_key')
         AWS_REGION = "us-west-2"
     }
     stages {
@@ -36,11 +36,11 @@ pipeline {
         stage("Create Runs") {
             steps {
                 script {
-                    def deploymentImage = docker.build("deployment-image")
+                    def deploymentImage = docker.build("deployment-image", "-f Dockerfile-cloudformation .")
                     deploymentImage.inside("-u root") {
                         log.info "Installing aqaua-deployment  python package"
                         sh """
-                        aws codeartifact login --tool pip --repository deployment --domain aqua-deployment --domain-owner 934027998561
+                        aws codeartifact login --tool pip --repository deployment --domain aqua-deployment --domain-owner 172746256356
                         pip install aqua-deployment
                         """
                         log.info "Finished to install aqaua-deployment python package"
