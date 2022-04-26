@@ -129,10 +129,9 @@ Resources:
                   ReadOnly: true
               Name: aqua-enforcer
               Privileged: !Ref Taskprivileged
-              Privileged: !Ref Taskprivileged
               LinuxParameters:
                 Capabilities:
-                  ADD:
+                  Add:
                     - SYS_ADMIN
                     - NET_ADMIN
                     - NET_RAW
@@ -215,4 +214,4 @@ Resources:
         Type: 'AWS::Logs::LogGroup'
         Properties:
           LogGroupName: !Join ['-', ['/aqua/enforcer', !Join ["-", ["td", !GetAtt RandomString.RandomString]]]]
-          RetentionInDays: 30      
+          RetentionInDays: 30
