@@ -24,7 +24,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: auditlambda
-      Runtime: go1.x
+      Runtime: provided.al2023
       CodeUri:
         Bucket: !Ref S3Bucket
         Key:  !Ref S3CodeKey
